@@ -98,6 +98,12 @@ def preprocess_raw_cargurus_data(nrows: int = None, export: bool = True):
             ] = get_usd_to_cad_exchange(date)
             bar()
 
+    raw_df["price"] = (
+        (raw_df.price_usd * raw_df.exchange_rate_usd_to_cad).round(0).astype("int32")
+    )
+
+    raw_df["currency"] = "CAD"
+
     if export:
         save_preprocessed_data(raw_df)
     else:
