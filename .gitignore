@@ -2,6 +2,9 @@
 data/*/*.csv
 data/*/*.parquet
 
+# ignore all zip files
+*.zip
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
