@@ -1,0 +1,14 @@
+#Author: Ty Andrews
+#Date: 2023-03-27
+
+# setup docker build for the scraping container
+services:
+  scraping:
+    build:
+      context: .
+      dockerfile: ./docker/scraping/Dockerfile
+    env_file: .env
+    container_name: scraping
+    restart: always
+    command: 
+
