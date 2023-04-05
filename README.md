@@ -1,3 +1,4 @@
+![](assets/fortunato-wheels-logo-blue-white.png)
 # Fortunato Wheels Engine
 
 This is the data engine for the Fortunato Wheels project. It manages gathering, parsing and updating the data used to power the Fortunato wheels website.
@@ -58,7 +59,7 @@ TODO: Add additional notes about how to deploy this on a live system
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+Please read [CONTRIBUTING.md](https://github.com/tieandrews/fortunato-wheels-engine/blob/main/CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
 
 ## Versioning
 
@@ -71,4 +72,4 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md]([LICENSE.md](https://github.com/tieandrews/fortunato-wheels-engine/blob/main/LICENSE.md)) file for details
