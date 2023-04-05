@@ -1,0 +1,237 @@
+{
+    "sellerId": "kijijicanada.1009456012",
+    "id": "28600002",
+    "version": 10,
+    "foreignId": "1653490224",
+    "partnerId": "kijijicanada",
+    "customerId": "42",
+    "sellerForeignId": "1009456012",
+    "title": "Suzuki grandvitari",
+    "make": "Suzuki",
+    "model": "Grand Vitara",
+    "trim": "Automatic ",
+    "year": "2008",
+    "bodyType": "Suv",
+    "location": {
+        "province": "AB",
+        "city": "-",
+        "zipCode": "T1H 1M6"
+    },
+    "images": [
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/ff/ff9d115d-dd6c-4fce-9e1e-a766409d5aab"
+        },
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/bd/bd14fd42-fb4b-4b83-baf9-6869043490e2"
+        },
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/a0/a09612cc-ad41-487d-a8c7-4ff10308d160"
+        },
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/82/82668214-a5c4-4a96-a756-617adfa6d2c0"
+        },
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/c2/c209b8b2-35e3-491f-be86-9b644138c680"
+        },
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/92/92a6c693-839a-42a4-8ab1-95d94594a326"
+        },
+        {
+            "uri": "media.kijiji.ca/api/v1/ca-prod-fsbo-ads/images/00/008c5b50-d469-42ed-8b96-3aa2718dfb9c"
+        }
+    ],
+    "prices": {
+        "consumerPrice": {
+            "amount": 2500,
+            "currency": "CAD",
+            "isNet": true,
+            "localized": "$2,500"
+        }
+    },
+    "priceRating": {
+        "provider": {
+            "tag": "KELLEY_BLUE_BOOK",
+            "name": "Kelley Blue Book",
+            "logo": "https://www.kijijiautos.ca/static/api/kbb/img-kelley-blue-book.png",
+            "darkLogo": "https://www.kijijiautos.ca/static/api/kbb/img-kelley-blue-book-dark.png"
+        },
+        "rating": "NO_DATA"
+    },
+    "contact": {
+        "type": "Private seller",
+        "country": "CA",
+        "enumType": "FSBO",
+        "name": "Lupe ",
+        "address2": "-,\u00a0AB\u00a0T1H,\u00a0CA",
+        "languages": "en"
+    },
+    "isDemoVehicle": false,
+    "quickFacts": {
+        "attributes": [
+            {
+                "tag": "condition",
+                "key": "Condition",
+                "value": "Used"
+            },
+            {
+                "tag": "mileage",
+                "key": "Kilometres",
+                "value": "243,000\u00a0km"
+            },
+            {
+                "tag": "transmission",
+                "key": "Transmission"
+            },
+            {
+                "tag": "trim",
+                "key": "Trim",
+                "value": "Automatic "
+            },
+            {
+                "tag": "driveTrain",
+                "key": "Drivetrain"
+            },
+            {
+                "tag": "fuelType",
+                "key": "Fuel type"
+            }
+        ]
+    },
+    "vehicleDetails": [
+        {
+            "tag": "General",
+            "label": "Overview",
+            "attributes": [
+                {
+                    "values": [
+                        "Make",
+                        "Suzuki"
+                    ]
+                },
+                {
+                    "values": [
+                        "Model",
+                        "Grand Vitara"
+                    ]
+                },
+                {
+                    "values": [
+                        "Year",
+                        "2008"
+                    ]
+                },
+                {
+                    "values": [
+                        "Trim",
+                        "Automatic "
+                    ]
+                },
+                {
+                    "values": [
+                        "Body type",
+                        "SUV"
+                    ]
+                }
+            ],
+            "dimensions": 2
+        }
+    ],
+    "mediaRefs": [],
+    "vehicleUsage": {
+        "usage": "average",
+        "currentMileage": "243,000\u00a0km",
+        "averageMileagePerYear": "20,000\u00a0km",
+        "buckets": {
+            "low": "183,000\u00a0km",
+            "average": "305,000\u00a0km",
+            "high": "412,000\u00a0km"
+        }
+    },
+    "attributeGroups": [
+        {
+            "tag": "overview",
+            "label": "Overview",
+            "attributes": [
+                {
+                    "values": [
+                        "Condition",
+                        "Used"
+                    ]
+                },
+                {
+                    "values": [
+                        "Make",
+                        "Suzuki"
+                    ]
+                },
+                {
+                    "values": [
+                        "Model",
+                        "Grand Vitara"
+                    ]
+                },
+                {
+                    "values": [
+                        "Year",
+                        "2008"
+                    ]
+                },
+                {
+                    "values": [
+                        "Trim",
+                        "Automatic "
+                    ]
+                },
+                {
+                    "values": [
+                        "Kilometres",
+                        "243,000\u00a0km"
+                    ]
+                },
+                {
+                    "values": [
+                        "Body type",
+                        "SUV"
+                    ]
+                }
+            ],
+            "dimensions": 2
+        }
+    ],
+    "htmlDescription": "Suzuki grandvitai 2008  automatic <br>4 by 4<br>243000 km<br>sale 2800 or best offer<br>Sold as is",
+    "vc": "Car",
+    "segment": "Car",
+    "vehicleReport": {
+        "providerName": "CARFAX Canada",
+        "providerLogoUrl": "https://www.kijijiautos.ca/static/api/carfax/carfax_primarylogo_v2.png",
+        "providerDarkLogoUrl": "https://www.kijijiautos.ca/static/api/carfax/carfax_primarylogo_v2.png",
+        "requestReportUrl": "https://www.kijijiautos.ca/consumer/vehicle-report/request"
+    },
+    "created": 1678977291,
+    "modified": 1680048014,
+    "url": "https://www.kijijiautos.ca/vip/28600002",
+    "youtubeVideos": [],
+    "showDealerPage": false,
+    "showSimilarItems": true,
+    "recommendationType": "SIMILAR",
+    "amountOfDealerListings": 2,
+    "listingStatus": {
+        "visibleToConsumer": true,
+        "statusId": "active"
+    },
+    "hasDigitalRetailing": false,
+    "protectionProductsOptIn": false,
+    "shareUrl": {
+        "host": "www.kijijiautos.ca",
+        "path": {
+            "en-CA": "/cars/suzuki/grand-vitara/",
+            "fr-CA": "/fr/voitures/suzuki/grand-vitara/"
+        },
+        "fragment": "vip=28600002"
+    },
+    "subscriptions": [],
+    "badges": [],
+    "isNew": false,
+    "isConditionNew": false,
+    "mapsUrl": "https://www.google.com/maps/search/?api=1&query=-,%C2%A0AB%C2%A0T1H,%C2%A0CA"
+}
