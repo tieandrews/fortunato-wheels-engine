@@ -14,14 +14,9 @@ import os
 import sys
 
 import json
-import logging
 from docopt import docopt
 
 opt = docopt(__doc__)
-
-# Create a custom logger
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 cur_dir = os.getcwd()
 SRC_PATH = cur_dir[
@@ -31,7 +26,10 @@ if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
 from src.websites.kijiji import get_kijiji_car_ad_pages
+from src.logs import get_logger
 
+# Create a custom logger
+logger = get_logger(__name__)
 
 def scrape_kijiji_car_make_pages(make=None, num_pages=None):
     """Scrapes Kijiji ad pages with multiple ads per page and inserts them

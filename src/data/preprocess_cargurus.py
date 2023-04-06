@@ -3,7 +3,6 @@
 import os
 import sys
 
-import logging
 import pandas as pd
 import requests
 import datetime as dt
@@ -16,11 +15,13 @@ SRC_PATH = cur_dir[
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
-# used for getting forex exchange rates and not critical to verify SSL
-requests.packages.urllib3.disable_warnings()
+from src.logs import get_logger
 
 # Create a custom logger
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+# used for getting forex exchange rates and not critical to verify SSL
+requests.packages.urllib3.disable_warnings()
 
 
 def preprocess_raw_cargurus_data(nrows: int = None, export: bool = True):

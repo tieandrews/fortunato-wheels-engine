@@ -21,6 +21,8 @@ SRC_PATH = cur_dir[
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
+from src.logs import get_logger
+
 from src.websites.kijiji_ad_parsing import (
     parse_direct_single_vehicle_ad,
     parse_page_single_vehicle_ad,
@@ -35,22 +37,7 @@ from src.data.upload_to_db import (
 load_dotenv(find_dotenv())
 
 # Create a custom logger
-logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# # create console handler and set level to debug
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# # create formatter
-# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# # add formatter to ch
-# ch.setFormatter(formatter)
-# # add ch to logger
-# if len(logger.handlers) != 0:
-#     logger.handlers.clear()
-#     print("Cleared exisiting handlers")
-
-# logger.addHandler(ch)
-# logger.propagate = False
+logger = get_logger(__name__)
 
 
 def get_kijiji_request_header() -> dict:

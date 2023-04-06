@@ -4,7 +4,6 @@
 import os
 import sys
 
-import logging
 import pymongo
 import datetime as dt
 from dotenv import load_dotenv, find_dotenv
@@ -16,7 +15,10 @@ SRC_PATH = cur_dir[
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
-logger = logging.getLogger(__name__)
+from src.logs import get_logger
+
+# Create a custom logger
+logger = get_logger(__name__)
 
 load_dotenv(find_dotenv())
 

@@ -4,36 +4,15 @@
 import os
 import sys
 
-import pandas as pd
-import requests
-import random
-import time
-import datetime as dt
-import logging
-import json
-
 cur_dir = os.getcwd()
 SRC_PATH = cur_dir[: cur_dir.index("fortunato-wheels") + len("fortunato-wheels")]
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
-# Create a custom logger
-logger = logging.getLogger(__name__)
-# logger.setLevel(logging.DEBUG)
-# # create console handler and set level to debug
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# # create formatter
-# formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-# # add formatter to ch
-# ch.setFormatter(formatter)
-# # add ch to logger
-# if len(logger.handlers) != 0:
-#     logger.handlers.clear()
-#     print("Cleared exisiting handlers")
+from src.logs import get_logger
 
-# logger.addHandler(ch)
-# logger.propagate = False
+# Create a custom logger
+logger = get_logger(__name__)
 
 
 def parse_page_single_vehicle_ad(ad_json):
@@ -59,7 +38,7 @@ def parse_page_single_vehicle_ad(ad_json):
         listing["title"] = ad_json["title"]
         listing["make"] = ad_json["make"]
         listing["model"] = ad_json["model"]
-        listing["year"] = ad_json["attr"]["yc"]
+        listing["year"] = int(ad_json["attr"]["yc"])
         listing["mileage"] = int(
             ad_json["attr"]["ml"].split("\xa0")[0].replace(",", "")
         )
@@ -186,7 +165,7 @@ def parse_direct_single_vehicle_ad(ad_json):
             elif attribute["tag"] == "driveTrain":
                 listing["driveTrain"] = attribute["value"]
 
-    listing["year"] = ad_json["year"]
+    listing["year"] = int(ad_json["year"])
 
     if "vin" in ad_json:
         listing["vin"] = ad_json["vin"]
