@@ -5,7 +5,9 @@ import sys
 
 import logging
 import pandas as pd
+import numpy as np
 import json
+from collections import defaultdict
 
 cur_dir = os.getcwd()
 SRC_PATH = cur_dir[
@@ -29,7 +31,11 @@ class CarAds:
         self.df = None
 
     def get_car_ads(
-        self, year_range: tuple = None, make: str = None, model: str = None
+        self,
+        year_range: tuple = None,
+        make: str = None,
+        model: str = None,
+        sources: list = ["cargurus", "kijiji"],
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
@@ -41,6 +47,9 @@ class CarAds:
             The make of the car ads to get, by default None
         model : str, optional
             The model of the car ads to get, by default None
+        sources: list
+            Which data sources to load from, options are cargurus, kijiji.
+            By default is ["cargurus", "kijiji"].
 
         Raises
         ------
@@ -62,19 +71,33 @@ class CarAds:
         self.make = make
         self.model = model
 
-        logger.info("Getting all car ads from all sources...")
-        # get cargurus ads
-        cargurus_df = self._get_cargurus_ads()
+        car_ads_df = pd.DataFrame()
 
-        # get kijiji ads
-        kijiji_df = self._get_kijiji_ads()
+        logger.info(f"Getting all car ads from {sources} sources...")
+        if "cargurus" in sources:
+            # get cargurus ads
+            cargurus_df = self._get_cargurus_ads()
+            car_ads_df = pd.concat([car_ads_df, cargurus_df], ignore_index=True)
 
-        # combine cargurus and kijiji ads
-        car_ads_df = pd.concat([cargurus_df, kijiji_df], ignore_index=True)
+        if "kijiji" in sources:
+            # get kijiji ads
+            kijiji_df = self._get_kijiji_ads()
+            car_ads_df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
 
         logger.info(f"Found {len(car_ads_df)} car ads.")
 
         self.df = car_ads_df
+
+    def preprocess_ads(self):
+        # determine age of ad at posting
+        self.df["age_at_posting"] = self.df.listed_date.dt.year - self.df.year
+
+        # calculate mileage per year
+        self.df["mileage_per_year"] = self.df.mileage / self.df.age_at_posting
+
+        self.df.mileage_per_year = self.df.mileage_per_year.replace(
+            [np.inf, -np.inf], np.nan
+        )
 
     def _get_cargurus_ads(self) -> pd.DataFrame:
         """Gets all cargurus car ads.
@@ -156,6 +179,24 @@ class CarAds:
         kijiji_df = pd.DataFrame(list(collection.find(query)))
 
         kijiji_df["source"] = "kijiji"
+
+        # convert created column from unix seconds since epoch to datetime
+        kijiji_df["listed_date"] = pd.to_datetime(kijiji_df.created, unit="s")
+        drive_train_map = defaultdict(lambda: "Unknown")
+        drive_train_map.update(
+            {
+                "Front-wheel drive (FWD)": "FWD",
+                "Rear-wheel drive (RWD)": "RWD",
+                "Four-wheel drive": "4WD",
+                "All-wheel drive (AWD)": "AWD",
+            }
+        )
+
+        # mpa and replace driveTrain with wheel_system values
+        kijiji_df["wheel_system"] = kijiji_df.driveTrain.map(
+            drive_train_map,
+            na_action="ignore",
+        )
 
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
 
@@ -270,7 +311,7 @@ class CarAds:
             The path to the parquet file.
         """
         logger.info("Exporting dataframe to parquet file...")
-        self.df.to_parquet(path)
+        self.df.to_parquet(path, index=False, engine="pyarrow")
 
     def export_to_csv(self, path: str) -> None:
         """Exports the dataframe to a csv file.
