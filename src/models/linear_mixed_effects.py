@@ -22,6 +22,7 @@ from src.logs import get_logger
 # Create a custom logger
 logger = get_logger(__name__)
 
+
 class CarPricePredictorLME:
     def __init__(
         self,
@@ -32,6 +33,16 @@ class CarPricePredictorLME:
         group=None,
         model_path=None,
     ):
+        assert (
+            len(fixed_continuous_features) + len(fixed_categorical_features) > 0
+        ) | (
+            model_path is not None
+        ), "Must have at least one categorical or continuoues fixed effect or pass the path to a saved model to load in."
+
+        assert isinstance(
+            target, str
+        ), "Target must be a string and the name of a column in the data."
+
         self.target = target
         self.fixed_continuous_features = fixed_continuous_features
         self.fixed_categorical_features = fixed_categorical_features
@@ -44,7 +55,7 @@ class CarPricePredictorLME:
             self.model = None
 
     def fit(self, data, display_summary=True):
-        """ Fit the model to the data.
+        """Fit the model to the data.
 
         Parameters
         ----------
@@ -92,7 +103,7 @@ class CarPricePredictorLME:
             print(self.model.summary())
 
     def evaluate_model(self, metrics=["rmse", "mape"]):
-        """ Evaluate the model using the specified metrics.
+        """Evaluate the model using the specified metrics.
 
         Parameters
         ----------
@@ -132,7 +143,7 @@ class CarPricePredictorLME:
         return results
 
     def predict(self, X):
-        """ Predict the price of the cars in the given data.
+        """Predict the price of the cars in the given data.
 
         Parameters
         ----------
@@ -205,8 +216,8 @@ class CarPricePredictorLME:
         return results
 
     def save_model(self, path):
-        """ Save the model to the specified path.
-        
+        """Save the model to the specified path.
+
         Parameters
         ----------
         path : str
@@ -219,7 +230,7 @@ class CarPricePredictorLME:
         self.model.save(path)
 
     def load_model(self, path):
-        """ Load the model from the specified path.
+        """Load the model from the specified path.
 
         Parses the statsmodel objects parameters to get the fixed and random effects
         as well as the group category if applicable.
@@ -237,8 +248,8 @@ class CarPricePredictorLME:
 
         continuous_features = [
             col
-            for col in m.model.fe_params.index
-            if (col not in m.fixed_categorical_features)
+            for col in self.model.fe_params.index
+            if (col not in self.fixed_categorical_features)
             and (col != "Intercept")
             and ("[T" not in col)
         ]
@@ -248,17 +259,17 @@ class CarPricePredictorLME:
             set(
                 [
                     col.split("[T")[0]
-                    for col in m.model.fe_params.index
-                    if (col in m.fixed_categorical_features) or ("[T" in col)
+                    for col in self.model.fe_params.index
+                    if (col in self.fixed_categorical_features) or ("[T" in col)
                 ]
             )
         )
         self.fixed_categorical_features = categorical_features
 
         # the first random effect is the grouping effect
-        group_feature = list(m.model.random_effects.items())[0][1].index[0]
+        group_feature = list(self.model.random_effects.items())[0][1].index[0]
         self.group = group_feature
 
         # remaining random effects are the random effects
-        random_effects = list((list(m.model.random_effects.items())[0][1].index[1:]))
+        random_effects = list((list(self.model.random_effects.items())[0][1].index[1:]))
         self.random_effects = random_effects
