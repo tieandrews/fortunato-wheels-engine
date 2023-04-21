@@ -8,6 +8,7 @@ import pymongo
 import datetime as dt
 from dotenv import load_dotenv, find_dotenv
 
+
 cur_dir = os.getcwd()
 SRC_PATH = cur_dir[
     : cur_dir.index("fortunato-wheels-engine") + len("fortunato-wheels-engine")
@@ -53,6 +54,9 @@ def upload_ads_batch(collection: pymongo.collection.Collection, ads: list) -> No
     ads : list
         A list of ads to upload.
     """
+
+    # remove any ads that are None
+    ads = [ad for ad in ads if ad is not None]
 
     # Check if ad already exists in Cosmos DB
     existing_ads = list(
