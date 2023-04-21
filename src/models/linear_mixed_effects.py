@@ -30,7 +30,7 @@ class CarPricePredictorLME:
         fixed_continuous_features=list(),
         fixed_categorical_features=list(),
         random_effects=None,
-        group=None,
+        group="model",
         model_path=None,
     ):
         assert (
@@ -42,6 +42,8 @@ class CarPricePredictorLME:
         assert isinstance(
             target, str
         ), "Target must be a string and the name of a column in the data."
+
+        assert group is not None, "Must specify a group for the random effects."
 
         self.target = target
         self.fixed_continuous_features = fixed_continuous_features
@@ -266,10 +268,10 @@ class CarPricePredictorLME:
         )
         self.fixed_categorical_features = categorical_features
 
-        # the first random effect is the grouping effect
-        group_feature = list(self.model.random_effects.items())[0][1].index[0]
+        # the first random effect in covariance matrix index is the grouping effect
+        group_feature = list(self.model.cov_re.index[0])
         self.group = group_feature
 
         # remaining random effects are the random effects
-        random_effects = list((list(self.model.random_effects.items())[0][1].index[1:]))
+        random_effects = self.model.cov_re.index[1:].tolist()
         self.random_effects = random_effects
