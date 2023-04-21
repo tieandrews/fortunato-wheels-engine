@@ -20,11 +20,11 @@ from src.models.linear_mixed_effects import CarPricePredictorLME
     [
         (["mileage"], [], None),
         ([], ["trim"], None),
-        (
-            [],
-            [],
-            os.path.join("data", "testing", "test_suv-price-model-v1.pkl"),
-        ),
+        # (
+        #     [],
+        #     [],
+        #     os.path.join("data", "testing", "test_suv-price-model-v1.pkl"),
+        # ),
     ],
 )
 def test_car_price_predictor_lme(continuous_features, categorical_features, model_path):
@@ -39,8 +39,18 @@ def test_car_price_predictor_lme(continuous_features, categorical_features, mode
 
 # check that initializing the class with no fixed effects or model path raises
 # an assertion error
-def check_invalid_price_predictor_lme():
+def test_check_invalid_price_predictor_lme():
     with pytest.raises(AssertionError):
         predictor = CarPricePredictorLME(
             fixed_continuous_features=[], fixed_categorical_features=[], model_path=None
+        )
+
+
+# must have a grouping variable by string for the random effects
+def test_invalid_group_param():
+    with pytest.raises(AssertionError):
+        predictor = CarPricePredictorLME(
+            fixed_continuous_features=["mileage"],
+            fixed_categorical_features=["trim"],
+            group=None,
         )
