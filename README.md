@@ -1,7 +1,7 @@
 ![](assets/fortunato-wheels-logo-blue-white.png)
 # Fortunato Wheels Engine
 
-This is the data engine for the Fortunato Wheels project. It manages gathering, parsing and updating the data used to power the Fortunato wheels website.
+This is the data engine for the Fortunato Wheels project. It manages the data and machine learning used to power the [Fortunato wheels website](https://fortunatowheels.com/).
 
 ## Getting Started
 
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ### Downloading & Preprocessing Data
 
 There are two primary data sources, one is the Fortunato Wheels database hosted in a 
-MongoDB instance on Azure. The other is the open source dataset of carguru.com ads.
+MongoDB instance on Azure. The other is the open source dataset of carguru.com ads originally used from Kaggle [here](https://www.kaggle.com/datasets/ananaymital/us-used-cars-dataset).
 
 1. Fortunato Wheels Database
     1. Get the connection string from the project owner.
@@ -31,28 +31,17 @@ MongoDB instance on Azure. The other is the open source dataset of carguru.com a
     3. To get all car ads from the database use:
         ```
         from src.data.upload_to_db import connect_to_db
-        clinet, db, collection = connect_to_db()
+        client, db, collection = connect_to_db()
         all_ads_raw = pd.DataFrame(collection.find())
         ```
-2. Carguru.com Ads: 2 Options - Download Already Processed or Process From Scratch 
+2. Carguru.com Ads: Download Processed Data
    1. To download an already processed version of the dataset download the parquet file from:  
     [Link to Processed Cargurus Data Download (~3GB)](https://drive.google.com/file/d/1rGJALL3xeGaakTp3BfH5Fd8uI3EP_4x8/view?usp=share_link)
     2. Move the downloaded file to saved to `data/processed/`
 
-    - OR: Process the data from scratch  
-
-   1. Download the Kaggle dataset from: https://www.kaggle.com/datasets/ananaymital/us-used-cars-dataset
-   3. Place the extracted CSV named to `cargurus-vehicle-ads.csv` in the `data/raw` folder.
-   4. To preprocess the data and export to parquet run:
-        ```
-        python src/data/preprocess_cargurus.py
-        ```
-        This will take ~45 minutes to run and get all the USD to CAD exchange rates for all ads.
-   5. The processed results will be saved to `data/processed/cargurus-vehicle-ads.parquet`
-
 ### Start Working with the Data
 
-To start working with the data, make a copy of the `notebooks/getting-started.ipynb` notebook and start working from there. It imports all the necessary libraries and sets up the data into a single dataframe in a `CarAds` object and shows how to get data loaded into a dataframe.
+To start working with the data, make a copy of the `notebooks/00-getting-started.ipynb` notebook and start working from there. It imports all the necessary libraries and sets up the data into a single dataframe in a `CarAds` object and shows how to get data loaded into a dataframe.
 
 Here is what the sample data looks like for Subaru Outback from 2008-2012:
 
