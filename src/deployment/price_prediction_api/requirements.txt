@@ -1,0 +1,7 @@
+pandas==1.5
+joblib~=1.2
+azureml-core~=1.51
+numpy~=1.23
+scikit-learn~=1.2
+azureml-defaults~=1.51
+inference-schema~=1.5.1
