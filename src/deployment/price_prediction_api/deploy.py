@@ -10,7 +10,6 @@ from azureml.core.webservice import AciWebservice
 from azureml.core.model import Model
 
 
-
 def main():
     ws = Workspace.from_config(
         # assumed running from root of repo
@@ -37,7 +36,9 @@ def main():
     price_model_quant5 = Model(ws, "all-vehicles-price-prediction-quant5", version=1)
     price_model_quant95 = Model(ws, "all-vehicles-price-prediction-quant95", version=1)
 
-    deployment_config = AciWebservice.deploy_configuration(cpu_cores=0.5, memory_gb=2, enable_app_insights=True)
+    deployment_config = AciWebservice.deploy_configuration(
+        cpu_cores=0.5, memory_gb=2, enable_app_insights=True
+    )
 
     service = Model.deploy(
         ws,
@@ -51,6 +52,7 @@ def main():
     service.wait_for_deployment(show_output=True)
 
     print("Deployment done, scoring URI: ", service.scoring_uri)
+
 
 if __name__ == "__main__":
     main()
