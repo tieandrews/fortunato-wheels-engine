@@ -18,8 +18,6 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# ws = Workspace.from_config()
-
 
 def init():
     global price_model, price_quant5_model, price_quant95_model
