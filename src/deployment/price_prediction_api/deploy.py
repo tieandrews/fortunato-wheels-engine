@@ -1,6 +1,7 @@
 # Author: Ty Andrews
 # Date: 2023-06-04
 
+import os
 import sklearn
 from azureml.core import Environment
 from azureml.core import Workspace
@@ -9,8 +10,12 @@ from azureml.core.webservice import AciWebservice
 from azureml.core.model import Model
 
 
+
 def main():
-    ws = Workspace.from_config()
+    ws = Workspace.from_config(
+        # assumed running from root of repo
+        path=os.path.join("src", "deployment", "price_prediction_api", "config.json")
+    )
     print(ws.name, ws.resource_group, ws.location, ws.subscription_id, sep="\n")
 
     env = Environment("price-prediction-env")
