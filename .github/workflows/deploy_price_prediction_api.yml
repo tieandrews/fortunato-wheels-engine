@@ -2,10 +2,10 @@ name: Deploy Price Prediction API
 
 on:
   pull_request:
-    types:
-      - closed
     branches: 
       - "main"
+    types:
+      - closed
     paths:
       - "src/deployment/price_prediction_api/deploy.py"
       - "src/deployment/price_prediction_api/score.py"
