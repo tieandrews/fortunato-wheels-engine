@@ -13,6 +13,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# update model versions here
 PRICE_PREDICTION_MODEL_VER = 3
 PRICE_PREDICTION_MODEL_QUANT5_VER = 1
 PRICE_PREDICTION_MODEL_QUANT95_VER = 1
