@@ -42,7 +42,9 @@ def main():
     )
 
     inference_config = InferenceConfig(
-        entry_script="score.py",
+        entry_script=os.path.join(
+            "src", "deployment", "price_prediction_api", "score.py"
+        ),
         environment=env,
     )
 
