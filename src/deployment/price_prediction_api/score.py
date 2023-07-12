@@ -18,6 +18,10 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# update model versions here
+PRICE_PREDICTION_MODEL_VER = 3
+PRICE_PREDICTION_MODEL_QUANT5_VER = 1
+PRICE_PREDICTION_MODEL_QUANT95_VER = 1
 
 def init():
     global price_model, price_quant5_model, price_quant95_model
@@ -25,7 +29,7 @@ def init():
     price_model_path = os.path.join(
         os.getenv("AZUREML_MODEL_DIR"),
         "all-vehicles-price-prediction",
-        "3",
+        str(PRICE_PREDICTION_MODEL_VER),
         "model",
         "model.pkl",
     )
@@ -33,7 +37,7 @@ def init():
     price_quant5_model_path = os.path.join(
         os.getenv("AZUREML_MODEL_DIR"),
         "all-vehicles-price-prediction-quant5",
-        "1",
+        str(PRICE_PREDICTION_MODEL_QUANT5_VER),
         "model_q5",
         "model.pkl",
     )
@@ -41,7 +45,7 @@ def init():
     price_quant95_model_path = os.path.join(
         os.getenv("AZUREML_MODEL_DIR"),
         "all-vehicles-price-prediction-quant95",
-        "1",
+        str(PRICE_PREDICTION_MODEL_QUANT95_VER),
         "model_q95",
         "model.pkl",
     )
@@ -72,6 +76,13 @@ sample_output = StandardPythonParameterType(
         "predicted_price": StandardPythonParameterType(23_000),
         "upper_ci": StandardPythonParameterType(25_000),
         "lower_ci": StandardPythonParameterType(21_000),
+        "model_versions": StandardPythonParameterType(
+            {
+                "price_model_version": PRICE_PREDICTION_MODEL_VER,
+                "price_quant5_model_version": PRICE_PREDICTION_MODEL_QUANT5_VER,
+                "price_quant95_model_version": PRICE_PREDICTION_MODEL_QUANT95_VER
+            }
+        ),
     }
 )
 
@@ -107,11 +118,18 @@ def run(request_data):
         upper_ci = price_quant95_model.predict(vehicle_features)
         lower_ci = price_quant5_model.predict(vehicle_features)
 
+        model_versions = {
+            "price_model_version": PRICE_PREDICTION_MODEL_VER,
+            "price_quant5_model_version": PRICE_PREDICTION_MODEL_QUANT5_VER,
+            "price_quant95_model_version": PRICE_PREDICTION_MODEL_QUANT95_VER
+        }
+
         # You can return any JSON-serializable value.
         return {
             "predicted_price": price_pred.tolist(),
             "upper_ci": upper_ci.tolist(),
             "lower_ci": lower_ci.tolist(),
+            "model_versions": model_versions
         }
     except Exception as e:
         result = str(e)
