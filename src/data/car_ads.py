@@ -147,6 +147,7 @@ class CarAds:
             "wheel_system",
             "currency",
             "exchange_rate_usd_to_cad",
+            "is_new"
         ]
 
         parquet_filter = [
@@ -171,6 +172,12 @@ class CarAds:
         )
 
         cargurus_df["source"] = "cargurus"
+
+        cargurus_df["condition"] = "Used"
+        # for values where is_new column is true, set condition to new
+        cargurus_df.loc[cargurus_df.is_new, "condition"] = "New"
+        # drop is_new column
+        cargurus_df.drop(columns=["is_new"], inplace=True)
 
         logger.info(f"Found {len(cargurus_df)} cargurus car ads.")
 
@@ -221,6 +228,16 @@ class CarAds:
         kijiji_df["wheel_system"] = kijiji_df.driveTrain.map(
             drive_train_map,
             na_action="ignore",
+        )
+
+        # where condition value is a dict extract the condition value
+        kijiji_df["condition"] = kijiji_df.condition.apply(
+            lambda x: x["condition"] if isinstance(x, dict) else x
+        )
+
+        # some locations ore lists of dicts for location, extract the first location from stateProvince field
+        kijiji_df["province"] = kijiji_df.location.apply(
+            lambda x: x["stateProvince"] if isinstance(x, dict) else x[0]['stateProvince'] if isinstance(x, list) else x
         )
 
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
