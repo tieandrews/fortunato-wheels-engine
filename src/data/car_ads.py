@@ -115,6 +115,15 @@ class CarAds:
             [np.inf, -np.inf], np.nan
         )
 
+        model_correction_map = {
+            "F 150": "F-150",
+            "RAV 4": "RAV4",
+            "F 150 Raptor": "F-150 Raptor",
+        }
+
+        self.df.model = self.df.model.replace(model_correction_map)
+
+
     def _get_cargurus_ads(self) -> pd.DataFrame:
         """Gets all cargurus car ads.
 
