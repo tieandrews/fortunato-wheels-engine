@@ -50,6 +50,8 @@ class CarAds:
         sources: list
             Which data sources to load from, options are cargurus, kijiji.
             By default is ["cargurus", "kijiji"].
+        data_dump: str
+            The path to a parquet file containing car ads to load.
 
         Raises
         ------
@@ -62,6 +64,20 @@ class CarAds:
         If make is None, then all car ads for the given year_range are returned.
         If model is None, then all car ads for the given year_range and make are returned.
         """
+
+        if data_dump is not None:
+            logger.info(f"Loading car ads from {data_dump}...")
+
+            if data_dump.endswith(".csv"):
+                self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
+                return
+            elif data_dump.endswith(".parquet"):
+                self.df = pd.read_parquet(data_dump)
+                return
+            else:
+                raise ValueError(
+                    f"Invalid file type for data_dump. Must be .csv or .parquet."
+                )
 
         if year_range is None:
             self.year_range = (1900, 2050)
