@@ -36,6 +36,7 @@ class CarAds:
         make: str = None,
         model: str = None,
         sources: list = ["cargurus", "kijiji"],
+        data_dump: str = None,
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
@@ -50,6 +51,8 @@ class CarAds:
         sources: list
             Which data sources to load from, options are cargurus, kijiji.
             By default is ["cargurus", "kijiji"].
+        data_dump: str
+            The path to a parquet file containing car ads to load.
 
         Raises
         ------
@@ -62,6 +65,20 @@ class CarAds:
         If make is None, then all car ads for the given year_range are returned.
         If model is None, then all car ads for the given year_range and make are returned.
         """
+
+        if data_dump is not None:
+            logger.info(f"Loading car ads from {data_dump}...")
+
+            if data_dump.endswith(".csv"):
+                self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
+                return
+            elif data_dump.endswith(".parquet"):
+                self.df = pd.read_parquet(data_dump)
+                return
+            else:
+                raise ValueError(
+                    f"Invalid file type for data_dump. Must be .csv or .parquet."
+                )
 
         if year_range is None:
             self.year_range = (1900, 2050)
@@ -99,6 +116,15 @@ class CarAds:
             [np.inf, -np.inf], np.nan
         )
 
+        model_correction_map = {
+            "F 150": "F-150",
+            "RAV 4": "RAV4",
+            "F 150 Raptor": "F-150 Raptor",
+        }
+
+        self.df.model = self.df.model.replace(model_correction_map)
+
+
     def _get_cargurus_ads(self) -> pd.DataFrame:
         """Gets all cargurus car ads.
 
@@ -122,6 +148,7 @@ class CarAds:
             "wheel_system",
             "currency",
             "exchange_rate_usd_to_cad",
+            "is_new"
         ]
 
         parquet_filter = [
@@ -146,6 +173,12 @@ class CarAds:
         )
 
         cargurus_df["source"] = "cargurus"
+
+        cargurus_df["condition"] = "Used"
+        # for values where is_new column is true, set condition to new
+        cargurus_df.loc[cargurus_df.is_new, "condition"] = "New"
+        # drop is_new column
+        cargurus_df.drop(columns=["is_new"], inplace=True)
 
         logger.info(f"Found {len(cargurus_df)} cargurus car ads.")
 
@@ -196,6 +229,16 @@ class CarAds:
         kijiji_df["wheel_system"] = kijiji_df.driveTrain.map(
             drive_train_map,
             na_action="ignore",
+        )
+
+        # where condition value is a dict extract the condition value
+        kijiji_df["condition"] = kijiji_df.condition.apply(
+            lambda x: x["condition"] if isinstance(x, dict) else x
+        )
+
+        # some locations ore lists of dicts for location, extract the first location from stateProvince field
+        kijiji_df["province"] = kijiji_df.location.apply(
+            lambda x: x["stateProvince"] if isinstance(x, dict) else x[0]['stateProvince'] if isinstance(x, list) else x
         )
 
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
