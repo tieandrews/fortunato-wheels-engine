@@ -36,6 +36,7 @@ class CarAds:
         make: str = None,
         model: str = None,
         sources: list = ["cargurus", "kijiji"],
+        data_dump: str = None,
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
