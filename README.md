@@ -1,3 +1,10 @@
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![codecov][codecov-shield]][codecov-url]
+
 ![](assets/fortunato-wheels-logo-blue-white.png)
 # Fortunato Wheels Engine
 
@@ -76,3 +83,16 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE.md]([LICENSE.md](https://github.com/tieandrews/fortunato-wheels-engine/blob/main/LICENSE.md)) file for details
+
+[contributors-shield]: https://img.shields.io/github/contributors/tieandrews/fortunato-wheels-engine.svg?style=for-the-badge
+[contributors-url]: https://github.com/tieandrews/fortunato-wheels-engine/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/tieandrews/fortunato-wheels-engine.svg?style=for-the-badge
+[forks-url]: https://github.com/tieandrews/fortunato-wheels-engine/network/members
+[stars-shield]: https://img.shields.io/github/stars/tieandrews/fortunato-wheels-engine.svg?style=for-the-badge
+[stars-url]: https://github.com/tieandrews/fortunato-wheels-engine/stargazers
+[issues-shield]: https://img.shields.io/github/issues/tieandrews/fortunato-wheels-engine.svg?style=for-the-badge
+[issues-url]: https://github.com/tieandrews/fortunato-wheels-engine/issues
+[license-shield]: https://img.shields.io/github/license/tieandrews/fortunato-wheels-engine.svg?style=for-the-badge
+[license-url]: https://github.com/tieandrews/fortunato-wheels-engine/blob/master/LICENSE.txt
+[codecov-shield]: https://img.shields.io/codecov/c/github/tieandrews/fortunato-wheels-engine?style=for-the-badge
+[codecov-url]: https://codecov.io/gh/tieandrews/fortunato-wheels-engine
