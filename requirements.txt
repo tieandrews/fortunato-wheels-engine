@@ -16,5 +16,7 @@ xgboost~=1.7
 seaborn~=0.12
 pyarrow~=9.0
 pytest~=7.2
+pytest-cov~=4.0
+coverage~=7.2
 codecov~=2.1
 plotly~=5.13
