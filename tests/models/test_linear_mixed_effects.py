@@ -3,11 +3,7 @@ import sys
 
 import pytest
 
-cur_dir = os.getcwd()
-SRC_PATH = cur_dir[
-    : cur_dir.index("fortunato-wheels-engine") + len("fortunato-wheels-engine")
-]
-print(SRC_PATH)
+SRC_PATH = sys.path.append(os.path.join(os.path.dirname(__file__), "..", ".."))
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 

@@ -9,14 +9,11 @@ import numpy as np
 import json
 from collections import defaultdict
 
-cur_dir = os.getcwd()
-SRC_PATH = cur_dir[
-    : cur_dir.index("fortunato-wheels-engine") + len("fortunato-wheels-engine")
-]
+SRC_PATH = os.path.join(os.path.dirname(__file__), "..", "..")
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
-from src.data.upload_to_db import connect_to_database
+from src.data.cosmos_db import connect_to_database
 from src.logs import get_logger
 
 # Create a custom logger
@@ -36,6 +33,7 @@ class CarAds:
         make: str = None,
         model: str = None,
         sources: list = ["cargurus", "kijiji"],
+        data_dump: str = None,
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
@@ -50,6 +48,8 @@ class CarAds:
         sources: list
             Which data sources to load from, options are cargurus, kijiji.
             By default is ["cargurus", "kijiji"].
+        data_dump: str
+            The path to a parquet file containing car ads to load.
 
         Raises
         ------
@@ -62,6 +62,20 @@ class CarAds:
         If make is None, then all car ads for the given year_range are returned.
         If model is None, then all car ads for the given year_range and make are returned.
         """
+
+        if data_dump is not None:
+            logger.info(f"Loading car ads from {data_dump}...")
+
+            if data_dump.endswith(".csv"):
+                self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
+                return
+            elif data_dump.endswith(".parquet"):
+                self.df = pd.read_parquet(data_dump)
+                return
+            else:
+                raise ValueError(
+                    f"Invalid file type for data_dump. Must be .csv or .parquet."
+                )
 
         if year_range is None:
             self.year_range = (1900, 2050)
@@ -99,6 +113,20 @@ class CarAds:
             [np.inf, -np.inf], np.nan
         )
 
+        # where mileage per year is null, set to the mileage values
+        self.df.loc[self.df.mileage_per_year.isnull(), "mileage_per_year"] = self.df.loc[
+            self.df.mileage_per_year.isnull(), "mileage"
+        ]
+
+        model_correction_map = {
+            "F 150": "F-150",
+            "RAV 4": "RAV4",
+            "F 150 Raptor": "F-150 Raptor",
+        }
+
+        self.df.model = self.df.model.replace(model_correction_map)
+
+
     def _get_cargurus_ads(self) -> pd.DataFrame:
         """Gets all cargurus car ads.
 
@@ -122,6 +150,7 @@ class CarAds:
             "wheel_system",
             "currency",
             "exchange_rate_usd_to_cad",
+            "is_new"
         ]
 
         parquet_filter = [
@@ -146,6 +175,12 @@ class CarAds:
         )
 
         cargurus_df["source"] = "cargurus"
+
+        cargurus_df["condition"] = "Used"
+        # for values where is_new column is true, set condition to new
+        cargurus_df.loc[cargurus_df.is_new, "condition"] = "New"
+        # drop is_new column
+        cargurus_df.drop(columns=["is_new"], inplace=True)
 
         logger.info(f"Found {len(cargurus_df)} cargurus car ads.")
 
@@ -198,6 +233,16 @@ class CarAds:
             na_action="ignore",
         )
 
+        # where condition value is a dict extract the condition value
+        kijiji_df["condition"] = kijiji_df.condition.apply(
+            lambda x: x["condition"] if isinstance(x, dict) else x
+        )
+
+        # some locations ore lists of dicts for location, extract the first location from stateProvince field
+        kijiji_df["province"] = kijiji_df.location.apply(
+            lambda x: x["stateProvince"] if isinstance(x, dict) else x[0]['stateProvince'] if isinstance(x, list) else x
+        )
+
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
 
         return kijiji_df
@@ -219,7 +264,7 @@ class CarAds:
         # get all makes and models
         all_makes_models_df = pd.read_json(
             os.path.join(
-                SRC_PATH, "data", "scraping-tracking", "all-makes-models.json"
+                SRC_PATH, "data", "raw", "all-makes-models.json"
             ),
             orient="index",
         )
@@ -271,7 +316,7 @@ class CarAds:
 
         return models_styled
 
-    def export_makes_model_names(self):
+    def export_makes_model_names(self, output_path: str = None) -> None:
         """Exports all makes and models to a json file.
 
         Raises
@@ -279,6 +324,11 @@ class CarAds:
         ValueError
             If no car ads have been loaded.
         """
+
+        if output_path is None:
+            output_path = os.path.join(
+                SRC_PATH, "data", "raw", "all-makes-models.json"
+            )
 
         if self.df is None:
             raise ValueError("No car ads have been loaded.")
@@ -295,9 +345,7 @@ class CarAds:
 
         # export the dictionary to a json file
         with open(
-            os.path.join(
-                SRC_PATH, "data", "scraping-tracking", "all-makes-models.json"
-            ),
+            output_path,
             "w",
         ) as f:
             json.dump(make_model_dict, f)
@@ -310,6 +358,12 @@ class CarAds:
         path : str
             The path to the parquet file.
         """
+
+        if self.df is None:
+            raise ValueError("No car ads have been loaded to export.")
+        if len(self.df) == 0:
+            raise ValueError("The dataframe contains no rows to export.")
+
         logger.info("Exporting dataframe to parquet file...")
         self.df.to_parquet(path, index=False, engine="pyarrow")
 
@@ -321,5 +375,10 @@ class CarAds:
         path : str
             The path to the csv file.
         """
+        if self.df is None:
+            raise ValueError("No car ads have been loaded to export.")
+        if len(self.df) == 0:
+            raise ValueError("The dataframe contains no rows to export.")
+
         logger.info("Exporting dataframe to csv file...")
         self.df.to_csv(path)
