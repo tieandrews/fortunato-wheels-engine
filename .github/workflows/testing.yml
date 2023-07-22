@@ -8,6 +8,7 @@ on:
     branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main", "dev" ]
+  workflow_dispatch:  # Enable manual triggering
 
 permissions:
   contents: read
@@ -36,4 +37,10 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with pytest
       run: |
-        pytest
+        pytest --cov=src --cov-report=xml
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env: 
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      with:
+          files: ./coverage.xml   # coverage report
