@@ -107,6 +107,7 @@ class CarAds:
 
     def preprocess_ads(self):
         # determine age of ad at posting
+        start_time = pd.Timestamp.now()
         self.df["age_at_posting"] = self.df.listed_date.dt.year - self.df.year
 
         # calculate mileage per year
@@ -123,6 +124,15 @@ class CarAds:
         }
 
         self.df.model = self.df.model.replace(model_correction_map)
+
+        make_correction_map = {
+            "INFINITI" : "Infiniti",
+        }
+
+        self.df.make = self.df.make.replace(make_correction_map)
+
+        logger.info(f"Done preprocessing car ads, took {(pd.Timestamp.now() - start_time).seconds}s.")
+        
 
 
     def _get_cargurus_ads(self) -> pd.DataFrame:
