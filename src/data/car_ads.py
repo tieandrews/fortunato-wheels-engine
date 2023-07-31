@@ -158,6 +158,9 @@ class CarAds:
         # pre process options list for one hot encoding using multilabel binarizer
         self.get_car_options(top_n_options=top_n_options)
 
+        logger.info(
+            f"Done preprocessing car ads, took {(pd.Timestamp.now() - start_time).seconds}s."
+        )
 
     def _get_cargurus_ads(self) -> pd.DataFrame:
         """Gets all cargurus car ads.
@@ -182,7 +185,7 @@ class CarAds:
             "wheel_system",
             "currency",
             "exchange_rate_usd_to_cad",
-            "is_new"
+            "is_new",
         ]
 
         parquet_filter = [
