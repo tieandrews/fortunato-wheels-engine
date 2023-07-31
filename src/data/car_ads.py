@@ -105,7 +105,7 @@ class CarAds:
 
         self.df = car_ads_df
 
-    def preprocess_ads(self):
+    def preprocess_ads(self, top_n_options: int = 50):
         # determine age of ad at posting
         start_time = pd.Timestamp.now()
         self.df["age_at_posting"] = self.df.listed_date.dt.year - self.df.year
@@ -131,8 +131,8 @@ class CarAds:
 
         self.df.make = self.df.make.replace(make_correction_map)
 
-        logger.info(f"Done preprocessing car ads, took {(pd.Timestamp.now() - start_time).seconds}s.")
-        
+        # pre process options list for one hot encoding using multilabel binarizer
+        self.get_car_options(top_n_options=top_n_options)
 
 
     def _get_cargurus_ads(self) -> pd.DataFrame:
