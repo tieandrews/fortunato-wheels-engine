@@ -113,9 +113,10 @@ class CarAds:
         # calculate mileage per year
         self.df["mileage_per_year"] = self.df.mileage / self.df.age_at_posting
 
-        self.df.mileage_per_year = self.df.mileage_per_year.replace(
-            [np.inf, -np.inf], np.nan
-        )
+        # set new vechicle mileage_per_year to mileage
+        self.df.loc[self.df.age_at_posting <= 0, "mileage_per_year"] = self.df.loc[
+            self.df.age_at_posting <= 0, "mileage"
+        ]
 
         model_correction_map = {
             "F 150": "F-150",
