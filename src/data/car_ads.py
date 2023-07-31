@@ -376,3 +376,65 @@ class CarAds:
         """
         logger.info("Exporting dataframe to csv file...")
         self.df.to_csv(path)
+
+    def get_car_options(self, top_n_options: int = 50):
+        """
+        Get the car options from the major_options column in the ads dataframe
+        and return a dataframe with the options one hot encoded
+        """
+
+        if self.df is None:
+            raise ValueError("No car ads have been loaded.")
+
+        self.df["options_list"] = None
+
+        # parse cargurus strings of options into list of options
+        self.df.loc[self.df.source == "cargurus", "options_list"] = (
+            self.df.loc[self.df.source == "cargurus", "major_options"]
+            .str.strip("['']")
+            .str.replace("'", "")
+            .str.replace(", ", ",")
+            .str.replace(" ", "-")
+            .str.replace("/", "-")
+            .str.lower()
+            .str.split(",")
+        )
+
+        # need to add option for lists when reading from cosmos database
+        self.df.loc[self.df.source == "kijiji", "options_list"] = (
+            self.df.loc[self.df.source == "kijiji", "features"]
+            .str.strip("['']")
+            .str.replace("'", "")
+            .str.replace(", ", ",")
+            .str.replace(" ", "-")
+            .str.replace("/", "-")
+            .str.lower()
+            .str.split(",")
+        )
+
+        # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
+        self.df = self.df.reset_index().rename(columns={"index": "unique_id"})
+
+        self.df = self.df.explode("options_list")
+
+        # explode the major_options column but only keep the top n options by count
+        most_common_options = self.df.options_list.value_counts()[
+            :top_n_options
+        ].index.to_list()
+
+        logger.debug(
+            f"Keeping the top {top_n_options} options by count: {most_common_options}"
+        )
+
+        # drop all rows where options_list is not in most_common_options but keep empty rows
+        self.df = self.df[
+            (self.df.options_list.isin(most_common_options))
+            | (self.df.options_list.isna())
+        ]
+
+        # get the one hot encoded options for each ad by grouping opttions_list column
+        self.df = self.df.groupby("unique_id", as_index=False).agg(list).reset_index()
+
+        logger.info(
+            f"Vehicle option preprocessing complete, kept top {top_n_options} options by count."
+        )
