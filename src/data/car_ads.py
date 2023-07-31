@@ -126,10 +126,33 @@ class CarAds:
         self.df.model = self.df.model.replace(model_correction_map)
 
         make_correction_map = {
-            "INFINITI" : "Infiniti",
+            "INFINITI": "Infiniti",
+            "FIAT": "Fiat",
         }
 
         self.df.make = self.df.make.replace(make_correction_map)
+
+        # normalize Dodge RAM to RAM as per 2009 make name change from all dodge trucks to RAM
+        self.df.loc[
+            (self.df.make == "Dodge") & (self.df.model.str.lower().str.contains("ram")),
+            "make",
+        ] = "RAM"
+
+        # fix RAM model names where RAM is still in the model name, remove it and extra whitespace
+        self.df.loc[
+            (self.df.make == "RAM") & (self.df.model.str.lower().str.contains("ram")),
+            "model",
+        ] = (
+            self.df.loc[
+                (self.df.make == "RAM")
+                & (self.df.model.str.lower().str.contains("ram")),
+                "model",
+            ]
+            .str.lower()
+            .str.replace("ram", "")
+            .str.strip()
+            .str.title()
+        )
 
         # pre process options list for one hot encoding using multilabel binarizer
         self.get_car_options(top_n_options=top_n_options)
