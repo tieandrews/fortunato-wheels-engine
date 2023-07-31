@@ -248,7 +248,11 @@ class CarAds:
 
         # some locations ore lists of dicts for location, extract the first location from stateProvince field
         kijiji_df["province"] = kijiji_df.location.apply(
-            lambda x: x["stateProvince"] if isinstance(x, dict) else x[0]['stateProvince'] if isinstance(x, list) else x
+            lambda x: x["stateProvince"]
+            if isinstance(x, dict)
+            else x[0]["stateProvince"]
+            if isinstance(x, list)
+            else x
         )
 
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
