@@ -13,20 +13,22 @@ from src.logs import get_logger
 
 logger = get_logger(__name__)
 
+
 def preprocess_ads_for_training(
-        ads_df:pd.DataFrame,
-        model_features = [
-            "age_at_posting",
-            "mileage_per_year",
-            "make",
-            "model",
-            "wheel_system",
-        ],
-        min_num_ads = 1000,
-        max_age_at_posting = 20,
-        min_price = 1000,
-        max_price = 250000,
-    ):
+    ads_df: pd.DataFrame,
+    model_features=[
+        "age_at_posting",
+        "mileage_per_year",
+        "make",
+        "model",
+        "wheel_system",
+    ],
+    exclude_new_vehicle_ads=True,
+    min_num_ads=1000,
+    max_age_at_posting=20,
+    min_price=1000,
+    max_price=250000,
+):
     """
     Preprocess a pandas DataFrame containing car ads for training.
 
@@ -50,7 +52,10 @@ def preprocess_ads_for_training(
     if "price" not in model_features:
         model_features = model_features + ["price"]
 
-    preprocessed_df = ads_df[model_features].copy()
+    # remove ads with condition other than "Used", "New", or "Certified Pre-Owned"
+    preprocessed_df = ads_df.loc[
+        ads_df.condition.isin(["Used", "New", "Certified Pre-Owned"]), model_features
+    ].copy()
 
     # remove NaN models and "other"
     preprocessed_df = preprocessed_df[~preprocessed_df["model"].isna()]
@@ -61,23 +66,37 @@ def preprocess_ads_for_training(
 
     if "age_at_posting" in model_features:
         # remove cars older than max_age_at_posting years
-        preprocessed_df = preprocessed_df[preprocessed_df["age_at_posting"] <= max_age_at_posting]
+        preprocessed_df = preprocessed_df[
+            preprocessed_df["age_at_posting"] <= max_age_at_posting
+        ]
 
     if "wheel_system" in model_features:
         # replace NaN wheel_system with "unknown"
-        preprocessed_df["wheel_system"] = preprocessed_df["wheel_system"].fillna("unknown")
+        preprocessed_df["wheel_system"] = preprocessed_df["wheel_system"].fillna(
+            "unknown"
+        )
 
     if "mileage_per_year" in model_features:
-        # where ads have an age_at_posting of zero set mileage_per_year to 0
-        preprocessed_df.loc[preprocessed_df["age_at_posting"] == 0, "mileage_per_year"] = 0
+        # where ads have an age_at_posting of zero set mileage_per_year to mileage
+        preprocessed_df.loc[
+            preprocessed_df["age_at_posting"] == 0, "mileage_per_year"
+        ] = preprocessed_df.loc[preprocessed_df["age_at_posting"] == 0, "mileage"]
         # drop any other mileage per year NaNs
         preprocessed_df = preprocessed_df[~preprocessed_df["mileage_per_year"].isna()]
+
+    if exclude_new_vehicle_ads:
+        # remove ads with age_at_posting of 0 or lower and less than 2500 kilometers driven
+        preprocessed_df = preprocessed_df[
+            ~(
+                (preprocessed_df["age_at_posting"] <= 0)
+                & (preprocessed_df["mileage_per_year"] <= 500)
+            )
+        ]
 
     # ensure only unique make/model combos are kept, some car models share names across makes
     # inspired from: https://stackoverflow.com/questions/35268817/unique-combinations-of-values-in-selected-columns-in-pandas-data-frame-and-count
     make_models_to_keep = (
-        preprocessed_df
-        .groupby(["make", "model"])
+        preprocessed_df.groupby(["make", "model"])
         .size()
         .reset_index()
         .rename(columns={0: "count"})
@@ -85,8 +104,12 @@ def preprocess_ads_for_training(
     )
 
     # inner join on make and model to remove any makes that have less than min_num_ads
-    preprocessed_df = preprocessed_df.merge(make_models_to_keep.drop(columns=["count"]), on=["make", "model"])
+    preprocessed_df = preprocessed_df.merge(
+        make_models_to_keep.drop(columns=["count"]), on=["make", "model"]
+    )
 
-    logger.info(f"Preprocessing ads for training, ending with {len(preprocessed_df)} ads")
+    logger.info(
+        f"Preprocessing ads for training, ending with {len(preprocessed_df)} ads"
+    )
 
     return preprocessed_df
