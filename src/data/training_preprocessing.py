@@ -34,6 +34,7 @@ def preprocess_ads_for_training(
 
     Args:
         ads_df (pd.DataFrame): A pandas DataFrame containing the car ads to preprocess.
+        exclude_new_vehicle_ads (bool): Whether to exclude ads for new vehicles.
         model_features (list): The features of the ads to keep in the preprocessed DataFrame.
         min_num_ads (int): The minimum number of ads needed for a make/model combo to be kept.
         max_age_at_posting (int): The maximum age at posting for an ad to be kept.
