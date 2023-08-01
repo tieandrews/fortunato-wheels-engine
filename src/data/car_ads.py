@@ -444,11 +444,26 @@ class CarAds:
         )
 
         # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
-        self.df = self.df.reset_index().rename(columns={"index": "unique_id"})
+        if "unique_id" not in self.df.columns:
+            self.df = self.df.reset_index().rename(columns={"index": "unique_id"})
 
         self.df = self.df.explode("options_list")
 
-        # explode the major_options column but only keep the top n options by count
+        # rename identical options
+        options_combo_map = {
+            "apple-carplay": "apple-carplay-android-auto",
+            "carplay": "apple-carplay-android-auto",
+            "android-auto": "apple-carplay-android-auto",
+            "a-c-(automatic)": "air-conditioning",
+            "electric-heated-seats": "heated-seats",
+            "blind-spot-assist": "blind-spot-monitoring",
+            "sunroof": "sunroof-moonroof",
+            "adaptive-cruise-control": "cruise-control",
+        }
+
+        self.df.options_list = self.df.options_list.replace(options_combo_map)
+
+        # only keep the top n options by count
         most_common_options = self.df.options_list.value_counts()[
             :top_n_options
         ].index.to_list()
@@ -464,7 +479,19 @@ class CarAds:
         ]
 
         # get the one hot encoded options for each ad by grouping opttions_list column
-        self.df = self.df.groupby("unique_id", as_index=False).agg(list).reset_index()
+
+        self.df = (
+            self.df.groupby(by="unique_id", as_index=False)
+            .agg(
+                {
+                    "options_list": list,
+                    **{
+                        col: "first" for col in self.df.columns if col != "options_list"
+                    },
+                }
+            )
+            .reset_index(drop=True)
+        )
 
         logger.info(
             f"Vehicle option preprocessing complete, kept top {top_n_options} options by count."
