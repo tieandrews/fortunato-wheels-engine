@@ -431,17 +431,36 @@ class CarAds:
             .str.split(",")
         )
 
-        # need to add option for lists when reading from cosmos database
-        self.df.loc[self.df.source == "kijiji", "options_list"] = (
-            self.df.loc[self.df.source == "kijiji", "features"]
-            .str.strip("['']")
-            .str.replace("'", "")
-            .str.replace(", ", ",")
-            .str.replace(" ", "-")
-            .str.replace("/", "-")
-            .str.lower()
-            .str.split(",")
-        )
+        # if the options_list for kijiji ads are lists, replace ' with "", replace / with -, 
+        # make it lowercase, replace spaces with -
+        if self.df.loc[self.df.source == "kijiji", "features"].apply(
+            lambda x: isinstance(x, list)
+        ).any():
+            # for each entry in the list apply the formatting
+            self.df.loc[
+                self.df.source == "kijiji", "options_list"
+            ] = self.df.loc[
+                self.df.source == "kijiji", "features"
+            ].apply(
+                lambda x: [
+                    option.replace("'", "").replace("/", "-").lower().replace(" ", "-")
+                    for option in x if isinstance(x, list) 
+                ] if isinstance(x, list) else x  # If x is not a list, keep the original value
+            )
+
+        # otherwise assumed major_options is a string
+        else:
+            # need to add option for lists when reading from cosmos database
+            self.df.loc[self.df.source == "kijiji", "options_list"] = (
+                self.df.loc[self.df.source == "kijiji", "features"]
+                .str.strip("['']")
+                .str.replace("'", "")
+                .str.replace(", ", ",")
+                .str.replace(" ", "-")
+                .str.replace("/", "-")
+                .str.lower()
+                .str.split(",")
+            )
 
         # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
         if "unique_id" not in self.df.columns:
@@ -455,6 +474,7 @@ class CarAds:
             "carplay": "apple-carplay-android-auto",
             "android-auto": "apple-carplay-android-auto",
             "a-c-(automatic)": "air-conditioning",
+            "a-c-(2-zones)": "air-conditioning",
             "electric-heated-seats": "heated-seats",
             "blind-spot-assist": "blind-spot-monitoring",
             "sunroof": "sunroof-moonroof",
