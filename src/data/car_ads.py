@@ -498,8 +498,10 @@ class CarAds:
             | (self.df.options_list.isna())
         ]
 
-        # get the one hot encoded options for each ad by grouping opttions_list column
+        # replace na values with 'none-listed'
+        self.df.options_list = self.df.options_list.fillna("none-listed")
 
+        # get the one hot encoded options for each ad by grouping opttions_list column
         self.df = (
             self.df.groupby(by="unique_id", as_index=False)
             .agg(
