@@ -303,7 +303,7 @@ class CarAds:
         # get all makes and models
         all_makes_models_df = pd.read_json(
             os.path.join(
-                SRC_PATH, "data", "scraping-tracking", "all-makes-models.json"
+                SRC_PATH, "data", "processed", "all-makes-models.json"
             ),
             orient="index",
         )
@@ -380,7 +380,7 @@ class CarAds:
         # export the dictionary to a json file
         with open(
             os.path.join(
-                SRC_PATH, "data", "scraping-tracking", "all-makes-models.json"
+                SRC_PATH, "data", "processed", "all-makes-models.json"
             ),
             "w",
         ) as f:
