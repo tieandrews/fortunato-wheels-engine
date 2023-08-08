@@ -1,16 +1,16 @@
 # Author: Ty Andrews
-# date: 2023-08-04
+# Date: 2023-07-21
 
-import os, sys
+import os
+import sys
 
 import pytest
 import pandas as pd
+import numpy as np
+import datetime as dt
+import json
 
-cur_dir = os.getcwd()
-SRC_PATH = cur_dir[
-    : cur_dir.index("fortunato-wheels-engine") + len("fortunato-wheels-engine")
-]
-print(f"SRC_PATH: {SRC_PATH}")
+SRC_PATH = os.path.join(os.path.dirname(__file__), "..", "..")
 if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
@@ -58,6 +58,10 @@ def raw_cargurus_car_ad():
 
     return raw_cargurus_car_ad
 
+@pytest.fixture
+def empty_car_ads():
+    return CarAds()
+
 # test that a data dump not in parquet or CSV format raises an error
 def test_load_data_dump(empty_car_ads):
     
@@ -90,6 +94,18 @@ def test_preprocess_raw_kijiji_ad(raw_kj_car_ad, raw_cargurus_car_ad):
     assert raw_cargurus_car_ad.df.mileage_per_year.iloc[0] == 4_000
     assert raw_cargurus_car_ad.df.options_list.iloc[0] == ["heated-seats"]
 
+def test_preprocess_ads_age_zero(empty_car_ads):
+
+    empty_car_ads.df = pd.DataFrame({'year': [2021],
+                               'make': ['Ford'],
+                               'model': ['F-150'],
+                               'mileage': [100000],
+                               'listed_date' : [dt.datetime(2021, 1, 1, 0, 0, 0)]
+                            })
+    empty_car_ads.preprocess_ads()
+    assert empty_car_ads.df.loc[0, 'age_at_posting'] == 0
+    assert empty_car_ads.df.loc[0, 'mileage_per_year'] == 100000
+
 
 def test_find_make_names(empty_car_ads):
 
@@ -118,25 +134,37 @@ def test_non_existant_make(empty_car_ads):
     with pytest.raises(ValueError):
         empty_car_ads.find_make_model_names(make="invalid_make")
 
-# test that exporting the car_ads.df to csv works using a temporary file
-def test_export_to_csv(raw_kj_car_ad):
-    
-        raw_kj_car_ad.preprocess_ads()
-    
-        raw_kj_car_ad.export_to_csv("test_export.csv")
-    
-        assert os.path.exists("test_export.csv")
-    
-        os.remove("test_export.csv")
 
-# test that exporting the car_ads.df to parquet works using a temporary file
-def test_export_to_parquet(raw_kj_car_ad):
-        
-    raw_kj_car_ad.preprocess_ads()
+# Test the export_to_parquet function
+def test_export_to_parquet(raw_kj_car_ad, tmp_path):
+    output_path = os.path.join(tmp_path, "test_export.parquet")
+    raw_kj_car_ad.export_to_parquet(output_path)
+    assert os.path.exists(output_path)
 
-    raw_kj_car_ad.export_to_parquet("test_export.parquet")
+    # Verify the content of the exported parquet file (optional)
+    df = pd.read_parquet(output_path)
+    assert df.equals(raw_kj_car_ad.df)
 
-    assert os.path.exists("test_export.parquet")
 
-    os.remove("test_export.parquet")
+# Test the export_to_csv function
+def test_export_to_csv(raw_kj_car_ad, tmp_path):
+    output_path = os.path.join(tmp_path, "test_export.csv")
+    raw_kj_car_ad.export_to_csv(output_path)
+    assert os.path.exists(output_path)
+
+
+# Test edge case when no data is provided for export_to_parquet
+def test_export_to_parquet_empty_data(tmp_path):
+    empty_car_class = CarAds()
+    output_path = os.path.join(tmp_path, "empty_test_export.parquet")
+    with pytest.raises(ValueError, match="No car ads have been loaded."):
+        empty_car_class.export_to_parquet(output_path)
+
+
+# Test edge case when no data is provided for export_to_csv
+def test_export_to_csv_empty_data(tmp_path):
+    empty_car_class = CarAds()
+    output_path = os.path.join(tmp_path, "empty_test_export.csv")
+    with pytest.raises(ValueError, match="No car ads have been loaded."):
+        empty_car_class.export_to_csv(output_path)
 
