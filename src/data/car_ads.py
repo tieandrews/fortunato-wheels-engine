@@ -363,7 +363,7 @@ class CarAds:
 
         if output_path is None:
             output_path = os.path.join(
-                SRC_PATH, "data", "raw", "all-makes-models.json"
+                SRC_PATH, "data", "processed", "all-makes-models.json"
             )
 
         if self.df is None:
@@ -381,9 +381,7 @@ class CarAds:
 
         # export the dictionary to a json file
         with open(
-            os.path.join(
-                SRC_PATH, "data", "processed", "all-makes-models.json"
-            ),
+            output_path,
             "w",
         ) as f:
             json.dump(make_model_dict, f)
