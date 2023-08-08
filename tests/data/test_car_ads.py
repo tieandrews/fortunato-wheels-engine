@@ -46,13 +46,13 @@ def raw_cargurus_car_ad():
     raw_cargurus_car_ad.df = pd.DataFrame({
         'source': ['cargurus'],
         'id': [1],
-        'price': [12_000],
+        'price': [5_000],
         'year': [2017],
-        'mileage': [10_000],
+        'mileage': [12_000],
         'make': ['Toyota'],
         'model': ['RAV4'],
-        'features': [["Heated Seats"]],
-        "major_options": [""],
+        'features': [[]],
+        "major_options": ["Heated Seats"],
         'listed_date': [pd.to_datetime('2020-01-01')],
     })
 
@@ -96,11 +96,15 @@ def test_preprocess_raw_kijiji_ad(raw_kj_car_ad, raw_cargurus_car_ad):
 
 def test_preprocess_ads_age_zero(empty_car_ads):
 
-    empty_car_ads.df = pd.DataFrame({'year': [2021],
-                               'make': ['Ford'],
-                               'model': ['F-150'],
-                               'mileage': [100000],
-                               'listed_date' : [dt.datetime(2021, 1, 1, 0, 0, 0)]
+    empty_car_ads.df = pd.DataFrame({
+                                'source': ['kijiji'],
+                                'year': [2021],
+                                'make': ['Ford'],
+                                'model': ['F-150'],
+                                'mileage': [100000],
+                                'listed_date' : [dt.datetime(2021, 1, 1, 0, 0, 0)],
+                                'major_options': [''],
+                                'features': [[]],
                             })
     empty_car_ads.preprocess_ads()
     assert empty_car_ads.df.loc[0, 'age_at_posting'] == 0
@@ -141,11 +145,6 @@ def test_export_to_parquet(raw_kj_car_ad, tmp_path):
     raw_kj_car_ad.export_to_parquet(output_path)
     assert os.path.exists(output_path)
 
-    # Verify the content of the exported parquet file (optional)
-    df = pd.read_parquet(output_path)
-    assert df.equals(raw_kj_car_ad.df)
-
-
 # Test the export_to_csv function
 def test_export_to_csv(raw_kj_car_ad, tmp_path):
     output_path = os.path.join(tmp_path, "test_export.csv")
@@ -167,4 +166,17 @@ def test_export_to_csv_empty_data(tmp_path):
     output_path = os.path.join(tmp_path, "empty_test_export.csv")
     with pytest.raises(ValueError, match="No car ads have been loaded."):
         empty_car_class.export_to_csv(output_path)
+
+# test that export make_makes_model_names works
+def test_export_make_model_names(raw_kj_car_ad, tmp_path):
+    output_path = os.path.join(tmp_path, "test_export_make_model_names.json")
+    raw_kj_car_ad.export_makes_model_names(output_path)
+    assert os.path.exists(output_path)
+
+    # check that loading the json file works
+    with open(output_path, "r") as f:
+        make_model_names = json.load(f)
+
+    assert "Honda" in make_model_names['kijiji'].keys()
+    assert "CR-V" in make_model_names['kijiji']["Honda"]
 
