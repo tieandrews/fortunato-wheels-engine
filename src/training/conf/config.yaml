@@ -1,0 +1,102 @@
+load_data:
+  params:
+    year_range: None
+    make: None
+    model: None
+    sources: 
+      - cargurus
+      - kijiji
+    # data_dump: None
+  preprocess: 
+    top_n_options: 50
+
+preprocess:
+  model_feats:
+    numeric:
+      - age_at_posting
+      - mileage_per_year
+    categorical:    
+      - make
+      - model
+      - price
+      - wheel_system
+    multi_label:
+      - options_list
+  exclude: True
+  min_num: 1000 
+  max_age: 20
+  min_price: 1000
+  max_price: 250000
+  test_size: 0.2
+  
+hyperopt:
+  metrics: # first metric is the one to minimize
+  - neg_mean_absolute_percentage_error
+  - neg_root_mean_squared_error
+  - r2
+  log_to_mlflow: True
+
+mlflow:
+  exp_name: "sandbox"
+  evals: 1
+
+search_space:
+  gradient_boosting:
+    max_features:
+      - choice
+      - ["sqrt", "log2"]
+    max_depth:
+      - uniformint
+      - 15
+      - 30
+    min_samples_split:
+      - uniformint
+      - 20
+      - 40
+    n_estimators:
+      - uniformint
+      - 150
+      - 300
+  xgboost:
+    max_depth:
+      - uniformint
+      - 15
+      - 40
+    min_child_weight:
+      - uniformint
+      - 1
+      - 10
+    subsample:
+      - uniform
+      - 0.5
+      - 1
+    n_estimators:
+      - uniformint
+      - 150
+      - 400
+    learning_rate:
+      - uniform
+      - 0.01
+      - 0.2
+    gamma:
+      - uniform
+      - 0.1
+      - 1
+  rf:
+    max_depth:
+      - uniformint
+      - 5
+      - 50
+    max_features:
+      - choice
+      - ["sqrt", "log2"]
+    min_samples_split:
+      - uniform
+      - 0.1
+      - 1
+  ridge:
+    alpha:
+      - uniform
+      - 0.1
+      - 100
+
