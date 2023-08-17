@@ -20,9 +20,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler, MultiLabelBinarizer, LabelEncoder
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.compose import ColumnTransformer
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_validate, cross_val_score
 from xgboost import XGBRegressor
-from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from hyperopt import fmin, tpe, hp, SparkTrials, STATUS_OK, Trials
 from azureml.core import Workspace
 from azureml.core.model import Model
