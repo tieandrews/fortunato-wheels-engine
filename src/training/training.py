@@ -63,8 +63,9 @@ def training(cfg: DictConfig) -> None:
         )
     )
 
-    model_features = (
-        cfg.preprocess.model_feats.numeric
+    model_features = OmegaConf.to_object(
+        cfg.preprocess.model_feats.target
+        + cfg.preprocess.model_feats.numeric
         + cfg.preprocess.model_feats.categorical
         + cfg.preprocess.model_feats.multi_label
     )
@@ -98,13 +99,16 @@ def training(cfg: DictConfig) -> None:
     X_test = test_df.drop(columns=["price"])
     y_test = test_df["price"]
 
+    numeric = OmegaConf.to_object(cfg.preprocess.model_feats.numeric)
+    categorical = OmegaConf.to_object(cfg.preprocess.model_feats.categorical)
+    multi = OmegaConf.to_object(cfg.preprocess.model_feats.multi_label)
 
     # make column transformer
     preprocessor = ColumnTransformer(
         transformers=[
-            ("num", StandardScaler(), cfg.preprocess.model_feats.numeric),
-            ("cat", OneHotEncoder(handle_unknown="ignore"), cfg.preprocess.model_feats.categorical),
-            ("multi", MultiHotEncoder(), cfg.preprocess.model_feats.multi_label),
+            ("num", StandardScaler(), numeric),
+            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical),
+            ("multi", MultiHotEncoder(), multi),
         ]
     )
 
@@ -130,6 +134,7 @@ def training(cfg: DictConfig) -> None:
             ]
         )
 
+        metrics =  OmegaConf.to_object(cfg.hyperopt.metrics)
         # manually run cross_validate and get train/test rmse, mape, and r2
         model_cv_results = (
             pd.DataFrame(
@@ -138,7 +143,7 @@ def training(cfg: DictConfig) -> None:
                     X_train.head(1000),
                     y_train.head(1000),
                     cv=5,
-                    scoring=cfg.hyperopt.metrics,
+                    scoring=metrics, 
                     return_train_score=True,
                     n_jobs=-1,
                 )
