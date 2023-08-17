@@ -153,7 +153,7 @@ def training(cfg: DictConfig) -> None:
             .T
         )
 
-        if cfg.hyperopt.log_to_mlfow:
+        if cfg.hyperopt.log_to_mlflow:
             # log metrics to mlflow
             with mlflow.start_run():
                 # log train and test for each metric
