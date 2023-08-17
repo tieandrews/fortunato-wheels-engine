@@ -12,13 +12,14 @@ load_data:
 
 preprocess:
   model_feats:
+    target:
+      - price
     numeric:
       - age_at_posting
       - mileage_per_year
     categorical:    
       - make
       - model
-      - price
       - wheel_system
     multi_label:
       - options_list
