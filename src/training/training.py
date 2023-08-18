@@ -12,6 +12,7 @@ from dotenv import load_dotenv, find_dotenv
 import pickle
 import tempfile
 import hydra
+from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 import hyperopt as hp
 
@@ -218,6 +219,9 @@ def training(cfg: DictConfig) -> None:
                     # Log metrics files as artifacts
                     mlflow.log_artifacts(tmpdir, artifact_path="evaluate/")
 
+                # log hydra outputs to mlflow
+                hydra_path = HydraConfig.get().runtime.output_dir
+                mlflow.log_artifacts(hydra_path, artifact_path="hydra_logs/")
         else:
             fit_model = pipe.fit(X_train.head(1000), y_train.head(1000))
             y_pred = fit_model.predict(X_test.head(1000))
