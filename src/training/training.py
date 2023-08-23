@@ -59,11 +59,19 @@ def training(cfg: DictConfig) -> None:
     # load the data
     ads = CarAds()
     # ads.get_car_ads(sources=["cargurus", "kijiji"])
-    ads.get_car_ads(
-        data_dump=os.path.join(
-            SRC_PATH, "data", "processed", "car-ads-dump_2023-07-18.csv"
-        )
-    )
+    if cfg.load_data.params.data_dump is None:
+        ads.get_car_ads(
+        make=cfg.load_data.params.make,
+        model=cfg.load_data.params.model,
+        year_range=cfg.load_data.params.year_range,
+        limit_ads=cfg.load_data.params.limit_ads,
+        sources=OmegaConf.to_object(cfg.load_data.params.sources),
+                        )
+    else:
+        ads.get_car_ads(
+            data_dump=cfg.load_data.params.data_dump,
+            limit_ads=cfg.load_data.params.limit_ads,
+            )
 
     model_features = OmegaConf.to_object(
         cfg.preprocess.model_feats.target
