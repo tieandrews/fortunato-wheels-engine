@@ -34,6 +34,7 @@ class CarAds:
         model: str = None,
         sources: list = ["cargurus", "kijiji"],
         data_dump: str = None,
+        limit_ads: int = None
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
@@ -50,6 +51,8 @@ class CarAds:
             By default is ["cargurus", "kijiji"].
         data_dump: str
             The path to a parquet file containing car ads to load.
+        limit_ads:
+            How many ads to load, if None loads all.
 
         Raises
         ------
@@ -67,7 +70,11 @@ class CarAds:
             logger.info(f"Loading car ads from {data_dump}...")
 
             if data_dump.endswith(".csv"):
-                self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
+                if isinstance(limit_ads, int):
+                    logger.info(f"Loading first {limit_ads} ads...")
+                    self.df = pd.read_csv(data_dump, parse_dates=["listed_date"], nrows=limit_ads)
+                else:
+                    self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
                 return
             elif data_dump.endswith(".parquet"):
                 self.df = pd.read_parquet(data_dump)
@@ -88,15 +95,22 @@ class CarAds:
         car_ads_df = pd.DataFrame()
 
         logger.info(f"Getting all car ads from {sources} sources...")
+        if ("kijiji" in sources) | (limit_ads is not None):
+            # get kijiji ads
+            if limit_ads is not None:
+                kijiji_df = self._get_kijiji_ads(limit_ads = limit_ads)
+                # if limit_ads is passed, gets only ads from kijiji then returns as parquet reading has issues
+                # limiting number of rows read in
+                self.df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
+                return
+            else:
+                kijiji_df = self._get_kijiji_ads(limit_ads = limit_ads)
+                car_ads_df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
+
         if "cargurus" in sources:
             # get cargurus ads
             cargurus_df = self._get_cargurus_ads()
             car_ads_df = pd.concat([car_ads_df, cargurus_df], ignore_index=True)
-
-        if "kijiji" in sources:
-            # get kijiji ads
-            kijiji_df = self._get_kijiji_ads()
-            car_ads_df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
 
         logger.info(f"Found {len(car_ads_df)} car ads.")
 
@@ -218,7 +232,7 @@ class CarAds:
 
         return cargurus_df
 
-    def _get_kijiji_ads(self) -> pd.DataFrame:
+    def _get_kijiji_ads(self, limit_ads:int = None) -> pd.DataFrame:
         """Gets all kijiji car ads.
 
         Returns
@@ -243,7 +257,10 @@ class CarAds:
         if self.model:
             query["model"] = self.model
 
-        kijiji_df = pd.DataFrame(list(collection.find(query)))
+        if limit_ads is not None:
+            kijiji_df = pd.DataFrame(list(collection.find(query).limit(limit_ads)))
+        else:
+            kijiji_df = pd.DataFrame(list(collection.find(query)))
 
         kijiji_df["source"] = "kijiji"
 
@@ -460,7 +477,9 @@ class CarAds:
             )
 
         # otherwise assumed major_options is a string
-        else:
+        elif self.df.loc[self.df.source == "kijiji", "features"].apply(
+            lambda x: isinstance(x, str)
+        ).any():
             # need to add option for lists when reading from cosmos database
             self.df.loc[self.df.source == "kijiji", "options_list"] = (
                 self.df.loc[self.df.source == "kijiji", "features"]
@@ -472,6 +491,8 @@ class CarAds:
                 .str.lower()
                 .str.split(",")
             )
+        else:
+            logger.error(f"kijiji ads features column not type str or list, no parsing done.")
 
         # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
         if "unique_id" not in self.df.columns:
