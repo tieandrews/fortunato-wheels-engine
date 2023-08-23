@@ -41,6 +41,8 @@ mlflow:
   exp_name: "sandbox"
   evals: 1
 
+model: xgboost
+
 search_space:
   gradient_boosting:
     type:
