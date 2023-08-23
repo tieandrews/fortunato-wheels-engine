@@ -234,7 +234,6 @@ def training(cfg: DictConfig) -> None:
 
             # can either print out results or save as csv locally
 
-
         # make negative mape positive so it minimizes it
         result = {
             "loss": -model_cv_results.loc["test_" + metrics[0]]["mean"],
@@ -244,7 +243,8 @@ def training(cfg: DictConfig) -> None:
         return result
 
     # Define the hyperopt search space based on the selected classifier type
-    hyperopt_space = OmegaConf.to_object(cfg.search_space.xgboost)
+    model = cfg.model
+    hyperopt_space = OmegaConf.to_object(cfg.search_space[model])
 
     # Define the hyperopt search space using the selected hyperparameters
     search_space = {}
@@ -255,7 +255,6 @@ def training(cfg: DictConfig) -> None:
             search_space[key] = getattr(hp, value[0])(key, *value[1:])
     # convert `search_space` to a `hp.choice` object
     search_space = hp.choice("classifier_type", [search_space])
-
 
     mlflow.set_experiment(cfg.mlflow.exp_name)
     mlflow.sklearn.autolog(disable=True)
@@ -269,9 +268,6 @@ def training(cfg: DictConfig) -> None:
         max_evals=cfg.mlflow.evals,
         trials=Trials(),
     )
-
-
-
 
 if __name__ == "__main__":
     training()
