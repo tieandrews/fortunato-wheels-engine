@@ -234,7 +234,6 @@ def training(cfg: DictConfig) -> None:
 
             # can either print out results or save as csv locally
 
-
         # make negative mape positive so it minimizes it
         result = {
             "loss": -model_cv_results.loc["test_" + metrics[0]]["mean"],
@@ -243,48 +242,20 @@ def training(cfg: DictConfig) -> None:
 
         return result
 
+    # Define the hyperopt search space based on the selected classifier type
+    model = cfg.model
+    hyperopt_space = OmegaConf.to_object(cfg.search_space[model])
 
-    # define search space
-    search_space = hp.choice("classifier_type", [
-        # {
-        #     "type": "gradient_boosting",
-        #     "max_features": hp.choice("max_features", ["sqrt", "log2"]),
-        #     "max_depth": hp.uniformint("max_depth", 15, 30),
-        #     "min_samples_split": hp.uniformint("dtree_min_samples_split", 20, 40),
-        #     "n_estimators": hp.uniformint("n_estimators", 150, 300),
-        # },
-        {
-            'type': 'xgboost',
-            'max_depth': hp.uniformint('max_depth', 15, 40),
-            'min_child_weight': hp.uniformint('min_child_weight', 1, 10),
-            'subsample': hp.uniform('subsample', 0.5, 1),
-            'n_estimators': hp.uniformint('n_estimators', 150, 400),
-            'learning_rate': hp.uniform('learning_rate', 0.01, 0.2),
-            'gamma': hp.uniform('gamma', 0.1, 1),
-        },
-        # {
-        #     'type': 'rf',
-        #     'max_depth': hp.uniformint('max_depth', 5, 50),
-        #     'max_features': hp.choice('max_features', ['sqrt', 'log2']),
-        #     'min_samples_split': hp.uniform('min_samples_split', 0.1, 1),
-        # },
-        # {
-        #     'type': 'ridge',
-        #     'alpha': hp.uniform('alpha', 0.1, 100),
-        # }
-        ])
+    # Define the hyperopt search space using the selected hyperparameters
+    search_space = {}
+    for key, value in hyperopt_space.items():
+        if key == "type":
+            search_space[key] = value[0]
+        else:
+            search_space[key] = getattr(hp, value[0])(key, *value[1:])
+    # convert `search_space` to a `hp.choice` object
+    search_space = hp.choice("classifier_type", [search_space])
 
-    # # Define the hyperopt search space based on the selected classifier type
-    # hyperopt_space = cfg.search_space.gradient_boosting
-
-    # # Define the hyperopt search space using the selected hyperparameters
-    # search_space = {}
-    # for key, value in hyperopt_space.items():
-    #     search_space[key] = getattr(hp, value[0])(key, *value[1:])
-
-   
-
-    # mlflow.set_experiment("price-prediction-v3-gradboost")
     mlflow.set_experiment(cfg.mlflow.exp_name)
     mlflow.sklearn.autolog(disable=True)
 
@@ -297,9 +268,6 @@ def training(cfg: DictConfig) -> None:
         max_evals=cfg.mlflow.evals,
         trials=Trials(),
     )
-
-
-
 
 if __name__ == "__main__":
     training()
