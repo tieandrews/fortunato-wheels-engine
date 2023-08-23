@@ -59,11 +59,19 @@ def training(cfg: DictConfig) -> None:
     # load the data
     ads = CarAds()
     # ads.get_car_ads(sources=["cargurus", "kijiji"])
-    ads.get_car_ads(
-        data_dump=os.path.join(
-            SRC_PATH, "data", "processed", "car-ads-dump_2023-07-18.csv"
-        )
-    )
+    if cfg.load_data.params.data_dump is None:
+        ads.get_car_ads(
+        make=cfg.load_data.params.make,
+        model=cfg.load_data.params.model,
+        year_range=cfg.load_data.params.year_range,
+        limit_ads=cfg.load_data.params.limit_ads,
+        sources=OmegaConf.to_object(cfg.load_data.params.sources),
+                        )
+    else:
+        ads.get_car_ads(
+            data_dump=cfg.load_data.params.data_dump,
+            limit_ads=cfg.load_data.params.limit_ads,
+            )
 
     model_features = OmegaConf.to_object(
         cfg.preprocess.model_feats.target
@@ -142,8 +150,8 @@ def training(cfg: DictConfig) -> None:
             pd.DataFrame(
                 cross_validate(
                     pipe,
-                    X_train.head(1000),
-                    y_train.head(1000),
+                    X_train,
+                    y_train,
                     cv=5,
                     scoring=metrics, 
                     return_train_score=True,
@@ -175,21 +183,22 @@ def training(cfg: DictConfig) -> None:
                 # log the type of model
                 mlflow.log_param("model_type", classifier_type)
 
-                fit_model = pipe.fit(X_train.head(1000), y_train.head(1000))
+                fit_model = pipe.fit(X_train, y_train)
 
                 # log model
-                mlflow.sklearn.log_model(
+                if cfg.mlflow.log_fit_model:
+                    mlflow.sklearn.log_model(
                     fit_model,
                     "model",
-                    signature=infer_signature(X_train.head(1000), y_train.head(1000)),
-                )
+                    signature=infer_signature(X_train, y_train),
+                    )
 
                 # predict on test set
-                y_pred = fit_model.predict(X_test.head(1000))
+                y_pred = fit_model.predict(X_test)
 
                 # add predicted price to test_df, round to 1 decimal place
                 full_df = (
-                    test_df.head(1000).copy(deep=True).assign(predicted_price=y_pred.round(1))
+                    test_df.copy(deep=True).assign(predicted_price=y_pred.round(1))
                 )
 
                 # calculate evaluation metrics by model
@@ -200,7 +209,7 @@ def training(cfg: DictConfig) -> None:
 
                 # calculate training data metrics
                 train_data_metrics = price_model.calculate_train_data_metrics(
-                    train_df.head(1000)
+                    train_df
                 )
 
                 with tempfile.TemporaryDirectory() as tmpdir:
@@ -223,14 +232,14 @@ def training(cfg: DictConfig) -> None:
                 hydra_path = HydraConfig.get().runtime.output_dir
                 mlflow.log_artifacts(hydra_path, artifact_path="hydra_logs/")
         else:
-            fit_model = pipe.fit(X_train.head(1000), y_train.head(1000))
-            y_pred = fit_model.predict(X_test.head(1000))
+            fit_model = pipe.fit(X_train, y_train)
+            y_pred = fit_model.predict(X_test)
             full_df = (
-                test_df.head(1000).copy(deep=True).assign(predicted_price=y_pred.round(1))
+                test_df.copy(deep=True).assign(predicted_price=y_pred.round(1))
             )
             metrics_by_model = price_model.calculate_evaluation_metrics_by_model(full_df)
             metrics_by_make = price_model.calculate_evaluation_metrics_by_make(full_df)
-            train_data_metrics = price_model.calculate_train_data_metrics(train_df.head(1000))
+            train_data_metrics = price_model.calculate_train_data_metrics(train_df)
 
             # can either print out results or save as csv locally
 
