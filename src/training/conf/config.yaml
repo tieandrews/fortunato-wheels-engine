@@ -17,36 +17,37 @@ preprocess:
     numeric:
       - age_at_posting
       - mileage_per_year
-    categorical:    
+    categorical:
       - make
       - model
       - wheel_system
     multi_label:
       - options_list
   exclude: True
-  min_num: 1000 
+  min_num: 1000
   max_age: 20
   min_price: 1000
   max_price: 250000
   test_size: 0.2
-  
+
 hyperopt:
   metrics: # first metric is the one to minimize
-  - neg_mean_absolute_percentage_error
-  - neg_root_mean_squared_error
-  - r2
+    - neg_mean_absolute_percentage_error
+    - neg_root_mean_squared_error
+    - r2
   log_to_mlflow: True
 
 mlflow:
   exp_name: "sandbox"
   evals: 1
+  log_fit_model: True
 
 model: xgboost
 
 search_space:
   gradient_boosting:
     type:
-      - 'gradient_boosting'
+      - "gradient_boosting"
     max_features:
       - choice
       - ["sqrt", "log2"]
@@ -64,7 +65,7 @@ search_space:
       - 300
   xgboost:
     type:
-      - 'xgboost'
+      - "xgboost"
     max_depth:
       - uniformint
       - 15
@@ -91,7 +92,7 @@ search_space:
       - 1
   rf:
     type:
-     - 'rf'
+      - "rf"
     max_depth:
       - uniformint
       - 5
@@ -105,7 +106,7 @@ search_space:
       - 1
   ridge:
     type:
-      - 'ridge'
+      - "ridge"
     alpha:
       - uniform
       - 0.1
