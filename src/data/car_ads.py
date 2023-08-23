@@ -498,7 +498,7 @@ class CarAds:
                     .str.split(",")
                 )
             else:
-            logger.error(f"kijiji ads features column not type str or list, no parsing done.")
+                logger.error(f"kijiji ads features column not type str or list, no parsing done.")
 
         # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
         if "unique_id" not in self.df.columns:
