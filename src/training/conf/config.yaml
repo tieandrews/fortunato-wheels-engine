@@ -1,13 +1,14 @@
 load_data:
   params:
-    year_range: None
-    make: None
-    model: None
-    sources: 
+    year_range: # blank so None type is passed
+    make:
+    model:
+    sources:
       - cargurus
       - kijiji
-    # data_dump: None
-  preprocess: 
+    data_dump:
+    limit_ads:
+  preprocess:
     top_n_options: 50
 
 preprocess:
