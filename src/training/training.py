@@ -144,7 +144,7 @@ def training(cfg: DictConfig) -> None:
         # log metrics to mlflow
         with mlflow.start_run():
 
-            mlflow.set_tag = ("git_commit", hash)
+            mlflow.set_tag("git_commit", hash)
 
             pipe = Pipeline(
                 steps=[
