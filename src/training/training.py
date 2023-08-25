@@ -269,7 +269,7 @@ def training(cfg: DictConfig) -> None:
 
     search_algorithm = tpe.suggest
 
-    rstate = np.random.RandomState(cfg.hyperopt.seed)
+    rstate = np.random.default_rng(cfg.hyperopt.seed)
 
     best_hyperparams = fmin(
         fn=objective,
