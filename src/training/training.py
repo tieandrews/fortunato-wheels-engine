@@ -142,7 +142,7 @@ def training(cfg: DictConfig) -> None:
         hash = repo.git.rev_parse(repo.head, short=True)
 
         # log metrics to mlflow
-        with mlflow.start_run():
+        with mlflow.start_run(nested=True):
 
             mlflow.set_tag("git_commit", hash)
 
