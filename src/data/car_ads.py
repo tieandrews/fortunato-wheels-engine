@@ -134,9 +134,9 @@ class CarAds:
             self.df.age_at_posting <= 0, "mileage"
         ]
 
-        # ensure make/model are of type string and not categorical before correcting values
-        self.df.make = self.df.make.astype(str)
-        self.df.model = self.df.model.astype(str)
+        # for any columns of dtype categorical cast to type strnig for modifications
+        for col in self.df.select_dtypes(include="category").columns:
+            self.df[col] = self.df[col].astype(str)
 
         model_correction_map = {
             "F 150": "F-150",
