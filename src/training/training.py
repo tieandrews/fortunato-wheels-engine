@@ -15,6 +15,7 @@ import hydra
 from hydra.core.hydra_config import HydraConfig
 from omegaconf import DictConfig, OmegaConf
 import hyperopt as hp
+import git
 
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
@@ -137,8 +138,13 @@ def training(cfg: DictConfig) -> None:
         else:
             return 0
         
+        repo = git.Repo(search_parent_directories=True)
+        hash = repo.git.rev_parse(repo.head, short=True)
+
         # log metrics to mlflow
         with mlflow.start_run():
+
+            mlflow.set_tag = ("git_commit", hash)
 
             pipe = Pipeline(
                 steps=[
