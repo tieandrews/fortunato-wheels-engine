@@ -136,112 +136,102 @@ def training(cfg: DictConfig) -> None:
             clf = Ridge(**params)
         else:
             return 0
+        
+        # log metrics to mlflow
+        with mlflow.start_run():
 
-        pipe = Pipeline(
-            steps=[
-                ("preprocessor", preprocessor),
-                ("regressor", clf),
-            ]
-        )
-
-        metrics =  OmegaConf.to_object(cfg.hyperopt.metrics)
-        # manually run cross_validate and get train/test rmse, mape, and r2
-        model_cv_results = (
-            pd.DataFrame(
-                cross_validate(
-                    pipe,
-                    X_train,
-                    y_train,
-                    cv=5,
-                    scoring=metrics, 
-                    return_train_score=True,
-                    n_jobs=-1,
-                )
+            pipe = Pipeline(
+                steps=[
+                    ("preprocessor", preprocessor),
+                    ("regressor", clf),
+                ]
             )
-            .agg(["mean", "std"])
-            .T
-        )
 
-        if cfg.hyperopt.log_to_mlflow:
-            # log metrics to mlflow
-            with mlflow.start_run():
-                # log train and test for each metric
-                for m in metrics:
-                    mlflow.log_metric(
-                        f"{m}_train_mean", model_cv_results.loc[f"train_{m}"]["mean"]
+            metrics =  OmegaConf.to_object(cfg.hyperopt.metrics)
+            # manually run cross_validate and get train/test rmse, mape, and r2
+            model_cv_results = (
+                pd.DataFrame(
+                    cross_validate(
+                        pipe,
+                        X_train,
+                        y_train,
+                        cv=5,
+                        scoring=metrics, 
+                        return_train_score=True,
+                        n_jobs=-1,
                     )
-                    mlflow.log_metric(
-                        f"{m}_test_mean", model_cv_results.loc[f"test_{m}"]["mean"]
-                    )
-                    mlflow.log_metric(
-                        f"{m}_train_std", model_cv_results.loc[f"train_{m}"]["std"]
-                    )
-                    mlflow.log_metric(f"{m}_test_std", model_cv_results.loc[f"test_{m}"]["std"])
-
-                # log params
-                mlflow.log_params(params)
-                # log the type of model
-                mlflow.log_param("model_type", classifier_type)
-
-                fit_model = pipe.fit(X_train, y_train)
-
-                # log model
-                if cfg.mlflow.log_fit_model:
-                    mlflow.sklearn.log_model(
-                    fit_model,
-                    "model",
-                    signature=infer_signature(X_train, y_train),
-                    )
-
-                # predict on test set
-                y_pred = fit_model.predict(X_test)
-
-                # add predicted price to test_df, round to 1 decimal place
-                full_df = (
-                    test_df.copy(deep=True).assign(predicted_price=y_pred.round(1))
                 )
-
-                # calculate evaluation metrics by model
-                metrics_by_model = price_model.calculate_evaluation_metrics_by_model(full_df)
-
-                # calculate evaluation metrics by make
-                metrics_by_make = price_model.calculate_evaluation_metrics_by_make(full_df)
-
-                # calculate training data metrics
-                train_data_metrics = price_model.calculate_train_data_metrics(
-                    train_df
+                .agg(["mean", "std"])
+                .T
+            )
+            
+            # log train and test for each metric
+            for m in metrics:
+                mlflow.log_metric(
+                    f"{m}_train_mean", model_cv_results.loc[f"train_{m}"]["mean"]
                 )
+                mlflow.log_metric(
+                    f"{m}_test_mean", model_cv_results.loc[f"test_{m}"]["mean"]
+                )
+                mlflow.log_metric(
+                    f"{m}_train_std", model_cv_results.loc[f"train_{m}"]["std"]
+                )
+                mlflow.log_metric(f"{m}_test_std", model_cv_results.loc[f"test_{m}"]["std"])
 
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    # Save model metrics to CSV file
-                    model_metrics_fname = os.path.join(tmpdir, "metrics_by_model.csv")
-                    metrics_by_model.to_csv(model_metrics_fname, index=False)
+            # log params
+            mlflow.log_params(params)
+            # log the type of model
+            mlflow.log_param("model_type", classifier_type)
 
-                    # Save make metrics to CSV file
-                    make_metrics_fname = os.path.join(tmpdir, "metrics_by_make.csv")
-                    metrics_by_make.to_csv(make_metrics_fname, index=False)
-
-                    # Save train metrics to CSV file
-                    train_metrics_fname = os.path.join(tmpdir, "train_data_metrics.csv")
-                    train_data_metrics.to_csv(train_metrics_fname, index=False)
-
-                    # Log metrics files as artifacts
-                    mlflow.log_artifacts(tmpdir, artifact_path="evaluate/")
-
-                # log hydra outputs to mlflow
-                hydra_path = HydraConfig.get().runtime.output_dir
-                mlflow.log_artifacts(hydra_path, artifact_path="hydra_logs/")
-        else:
             fit_model = pipe.fit(X_train, y_train)
+
+            # log model
+            if cfg.mlflow.log_fit_model:
+                mlflow.sklearn.log_model(
+                fit_model,
+                "model",
+                signature=infer_signature(X_train, y_train),
+                )
+
+            # predict on test set
             y_pred = fit_model.predict(X_test)
+
+            # add predicted price to test_df, round to 1 decimal place
             full_df = (
                 test_df.copy(deep=True).assign(predicted_price=y_pred.round(1))
             )
-            metrics_by_model = price_model.calculate_evaluation_metrics_by_model(full_df)
-            metrics_by_make = price_model.calculate_evaluation_metrics_by_make(full_df)
-            train_data_metrics = price_model.calculate_train_data_metrics(train_df)
 
-            # can either print out results or save as csv locally
+            # calculate evaluation metrics by model
+            metrics_by_model = price_model.calculate_evaluation_metrics_by_model(full_df)
+
+            # calculate evaluation metrics by make
+            metrics_by_make = price_model.calculate_evaluation_metrics_by_make(full_df)
+
+            # calculate training data metrics
+            train_data_metrics = price_model.calculate_train_data_metrics(
+                train_df
+            )
+
+            with tempfile.TemporaryDirectory() as tmpdir:
+                # Save model metrics to CSV file
+                model_metrics_fname = os.path.join(tmpdir, "metrics_by_model.csv")
+                metrics_by_model.to_csv(model_metrics_fname, index=False)
+
+                # Save make metrics to CSV file
+                make_metrics_fname = os.path.join(tmpdir, "metrics_by_make.csv")
+                metrics_by_make.to_csv(make_metrics_fname, index=False)
+
+                # Save train metrics to CSV file
+                train_metrics_fname = os.path.join(tmpdir, "train_data_metrics.csv")
+                train_data_metrics.to_csv(train_metrics_fname, index=False)
+
+                # Log metrics files as artifacts
+                mlflow.log_artifacts(tmpdir, artifact_path="evaluate/")
+
+            # log hydra outputs to mlflow
+            hydra_path = HydraConfig.get().runtime.output_dir
+            mlflow.log_artifacts(hydra_path, artifact_path="hydra_logs/")
+
 
         # make negative mape positive so it minimizes it
         result = {
