@@ -269,12 +269,15 @@ def training(cfg: DictConfig) -> None:
 
     search_algorithm = tpe.suggest
 
+    rstate = np.random.RandomState(cfg.hyperopt.seed)
+
     best_hyperparams = fmin(
         fn=objective,
         space=search_space,
         algo=search_algorithm,
         max_evals=cfg.mlflow.evals,
         trials=Trials(),
+        rstate=rstate
     )
 
 if __name__ == "__main__":
