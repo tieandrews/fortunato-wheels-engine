@@ -36,7 +36,6 @@ hyperopt:
     - neg_mean_absolute_percentage_error
     - neg_root_mean_squared_error
     - r2
-  log_to_mlflow: True
 
 mlflow:
   exp_name: "sandbox"
