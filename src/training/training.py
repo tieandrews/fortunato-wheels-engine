@@ -39,7 +39,7 @@ if SRC_PATH not in sys.path:
     sys.path.append(SRC_PATH)
 
 from src.data.car_ads import CarAds
-from src.logs import get_logger
+from src.logs import get_logger, find_logger_basefilename
 from src.data.training_preprocessing import preprocess_ads_for_training
 from src.evaluate import price_model
 from src.training.custom_components import MultiHotEncoder
@@ -271,14 +271,27 @@ def training(cfg: DictConfig) -> None:
 
     rstate = np.random.default_rng(cfg.hyperopt.seed)
 
-    best_hyperparams = fmin(
-        fn=objective,
-        space=search_space,
-        algo=search_algorithm,
-        max_evals=cfg.mlflow.evals,
-        trials=Trials(),
-        rstate=rstate
-    )
+    try:
+        with mlflow.start_run(): 
+
+            best_hyperparams = fmin(
+                fn=objective,
+                space=search_space,
+                algo=search_algorithm,
+                max_evals=cfg.mlflow.evals,
+                trials=Trials(),
+                rstate=rstate
+            )
+            logger.info(f"Finished hyperparameter tuning, best hyperparameters are: {best_hyperparams}")
+            log_file_path = find_logger_basefilename(logger)
+            mlflow.log_artifacts(log_file_path)
+
+    except Exception as e:
+        logger.error(f"Hyperparameter failed with exception: {e}")
+
+        log_file_path = find_logger_basefilename(logger)
+        mlflow.log_artifacts(log_file_path)
+
 
 if __name__ == "__main__":
     training()
