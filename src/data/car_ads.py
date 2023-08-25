@@ -258,6 +258,24 @@ class CarAds:
             "year": {"$gte": self.year_range[0], "$lte": self.year_range[1]},
         }
 
+        # define projection to only return the columns we need
+        projection = {
+            "year": 1,
+            "make": 1,
+            "model": 1,
+            "features": 1,
+            "created": 1,
+            "modified": 1,
+            "price": 1,
+            "driveTrain": 1,
+            "condition": 1,
+            "mileage": 1,
+            "url": 1,
+            "transmission": 1,
+            "location": 1,
+            "_id": 0
+        }
+
         # add filter for make if it exists
         if self.make:
             query["make"] = self.make
@@ -267,9 +285,9 @@ class CarAds:
             query["model"] = self.model
 
         if limit_ads is not None:
-            kijiji_df = pd.DataFrame(list(collection.find(query).limit(limit_ads)))
+            kijiji_df = pd.DataFrame(list(collection.find(query, projection).limit(limit_ads)))
         else:
-            kijiji_df = pd.DataFrame(list(collection.find(query)))
+            kijiji_df = pd.DataFrame(list(collection.find(query, projection)))
 
         kijiji_df["source"] = "kijiji"
 
