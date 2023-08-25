@@ -165,12 +165,15 @@ def training(cfg: DictConfig) -> None:
                         scoring=metrics, 
                         return_train_score=True,
                         n_jobs=-1,
+                        verbose=1
                     )
                 )
                 .agg(["mean", "std"])
                 .T
             )
             
+            logger.info('Cross validation complete')
+
             # log train and test for each metric
             for m in metrics:
                 mlflow.log_metric(
