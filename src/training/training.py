@@ -46,6 +46,9 @@ from src.training.custom_components import MultiHotEncoder
 
 load_dotenv(find_dotenv())
 
+# environment variable to prevent timeout on upload of large files
+os.environ["AZUREML_ARTIFACTS_DEFAULT_TIMEOUT"] = 3600
+
 logger = get_logger(__name__)
 
 AZURE_MLFLOW_URI = os.environ.get("AZURE_MLFLOW_URI")
