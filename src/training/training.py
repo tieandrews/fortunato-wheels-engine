@@ -149,6 +149,11 @@ def training(cfg: DictConfig) -> None:
 
             mlflow.set_tag("git_commit", hash)
 
+            # log params
+            mlflow.log_params(params)
+            # log the type of model
+            mlflow.log_param("model_type", classifier_type)
+
             pipe = Pipeline(
                 steps=[
                     ("preprocessor", preprocessor),
@@ -189,11 +194,6 @@ def training(cfg: DictConfig) -> None:
                     f"{m}_train_std", model_cv_results.loc[f"train_{m}"]["std"]
                 )
                 mlflow.log_metric(f"{m}_test_std", model_cv_results.loc[f"test_{m}"]["std"])
-
-            # log params
-            mlflow.log_params(params)
-            # log the type of model
-            mlflow.log_param("model_type", classifier_type)
 
             fit_model = pipe.fit(X_train, y_train)
 
