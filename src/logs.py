@@ -38,7 +38,7 @@ def get_logger(logger_name):
 
     return logger
 
-def find_logger_basefilename(self, logger):
+def find_logger_basefilename(logger):
     """Finds the logger base filename(s) currently there is only one
     """
     log_file = None
