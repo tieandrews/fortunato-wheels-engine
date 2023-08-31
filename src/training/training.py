@@ -287,13 +287,15 @@ def training(cfg: DictConfig) -> None:
             )
             logger.info(f"Finished hyperparameter tuning, best hyperparameters are: {best_hyperparams}")
             log_file_path = find_logger_basefilename(logger)
-            mlflow.log_artifacts(log_file_path)
+            mlflow.log_artifact(log_file_path)
 
     except Exception as e:
         logger.error(f"Hyperparameter failed with exception: {e}")
 
         log_file_path = find_logger_basefilename(logger)
-        mlflow.log_artifacts(log_file_path)
+        mlflow.log_artifact(log_file_path)
+        hydra_path = HydraConfig.get().runtime.output_dir
+        mlflow.log_artifacts(hydra_path, artifact_path="hydra_logs/")
 
 
 if __name__ == "__main__":
