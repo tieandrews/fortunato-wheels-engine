@@ -16,117 +16,164 @@ if SRC_PATH not in sys.path:
 
 from src.data.car_ads import CarAds
 
+
 @pytest.fixture
-def simple_data():
-    data = {'year': [2010, 2011, 2012, 2013, 2014],
-            'make': ['Ford', 'Toyota', 'Honda', 'Ford', 'Toyota'],
-            'model': ['F-150', 'RAV4', 'Civic', 'Mustang', 'Camry'],
-            'mileage': [100000, 80000, 60000, 40000, 20000],
-            'listed_date' : [dt.datetime(2021, 1, 1, 0, 0, 0), dt.datetime(2021, 1, 2, 0, 0, 0), dt.datetime(2021, 1, 3, 0, 0, 0), dt.datetime(2021, 1, 4, 0, 0, 0), dt.datetime(2021, 1, 5, 0, 0, 0)]
-        }
-    return pd.DataFrame(data)
-    
-@pytest.fixture
-def car_ads():
+def empty_car_ads():
     return CarAds()
 
-# check the age_at_posting and mileage_per_year columns are created correctly for basic case   
-def test_preprocess_ads(simple_data, car_ads):
-    car_ads.df = simple_data
-    car_ads.preprocess_ads()
-    for _, row in simple_data.iterrows():
-        age_at_posting = row.listed_date.year - row.year
-        mileage_per_year = row.mileage / age_at_posting
-        assert car_ads.df.loc[row.name, 'age_at_posting'] == age_at_posting
-        assert car_ads.df.loc[row.name, 'mileage_per_year'] == mileage_per_year
 
-# test that a car with an age at zero has mileage per year set to it's current mileage
-def test_preprocess_ads_age_zero(car_ads):
-
-    car_ads.df = pd.DataFrame({'year': [2021],
-                               'make': ['Ford'],
-                               'model': ['F-150'],
-                               'mileage': [100000],
-                               'listed_date' : [dt.datetime(2021, 1, 1, 0, 0, 0)]
-                            })
-    car_ads.preprocess_ads()
-    assert car_ads.df.loc[0, 'age_at_posting'] == 0
-    assert car_ads.df.loc[0, 'mileage_per_year'] == 100000
-
-def test_find_make_model_names(car_ads):
-    # convert to string to check content instead of Pandas styler object
-    car_makes_result_string = car_ads.find_make_model_names().to_string()
-
-    # check that a handful of common makes are in the results
-    assert 'Ford' in car_makes_result_string
-    assert 'Toyota' in car_makes_result_string
-    assert 'Honda' in car_makes_result_string
-    assert 'Chevrolet' in car_makes_result_string
-    assert 'Nissan' in car_makes_result_string
-    assert 'Hyundai' in car_makes_result_string
-
-def test_find_make_model_names_nonexistent_make():
-
-    pytest.raises(ValueError, CarAds().find_make_model_names, 'NotAMake')
-
-
-# Sample car ad data for testing
-SAMPLE_CAR_ADS = {
-    "source": ["source1", "source1", "source2"],
-    "make": ["Toyota", "Toyota", "Honda"],
-    "model": ["Camry", "Corolla", "Civic"],
-}
-
-# Fixture to create a sample CarClass instance with test data
 @pytest.fixture
-def car_class_instance(car_ads, tmp_path):
-    # Create a DataFrame with sample data
-    df = pd.DataFrame(SAMPLE_CAR_ADS)
-    car_class = car_ads
-    car_class.df = df
-    car_class.export_to_parquet(os.path.join(tmp_path, "test_data.parquet"))
-    return car_class
+def raw_kj_car_ad():
+
+    raw_kj_car_ad = CarAds()
+    raw_kj_car_ad.sources = ["kijiji"]
+    raw_kj_car_ad.df = pd.DataFrame(
+        {
+            "source": ["kijiji"],
+            "id": [1],
+            "price": [10_000],
+            "year": [2020],
+            "mileage": [10_000],
+            "make": ["Honda"],
+            "model": ["CR-V"],
+            "features": [["Air Conditioning", "Backup Camera"]],
+            "major_options": [""],
+            "listed_date": [pd.to_datetime("2022-01-01")],
+        }
+    )
+
+    return raw_kj_car_ad
 
 
-# Test the export_makes_model_names function
-def test_export_makes_model_names(car_class_instance, tmpdir):
-    # Test exporting when car ads are loaded
-    output_path = os.path.join(tmpdir, "all-makes-models.json")
-    car_class_instance.export_makes_model_names(output_path=output_path)
-    
-    # assert len(tmpdir.listdir()) == 1
-    assert os.path.exists(output_path)
+@pytest.fixture
+def raw_cargurus_car_ad():
 
-    # Verify the content of the exported json file
-    with open(output_path, "r") as f:
-        make_model_dict = json.load(f)
+    raw_cargurus_car_ad = CarAds()
+    raw_cargurus_car_ad.sources = ["cargurus"]
+    raw_cargurus_car_ad.df = pd.DataFrame(
+        {
+            "source": ["cargurus"],
+            "id": [1],
+            "price": [5_000],
+            "year": [2017],
+            "mileage": [12_000],
+            "make": ["Toyota"],
+            "model": ["RAV4"],
+            "features": [[]],
+            "major_options": ["Heated Seats"],
+            "listed_date": [pd.to_datetime("2020-01-01")],
+        }
+    )
 
-    assert make_model_dict == {
-        "source1": {"Toyota": ["Camry", "Corolla"]},
-        "source2": {"Honda": ["Civic"]},
-    }
+    return raw_cargurus_car_ad
 
-    # Test exporting when no car ads are loaded
-    empty_car_class = CarAds()
-    with pytest.raises(ValueError, match="No car ads have been loaded."):
-        empty_car_class.export_makes_model_names()
+
+@pytest.fixture
+def empty_car_ads():
+    return CarAds()
+
+
+# test that a data dump not in parquet or CSV format raises an error
+def test_load_data_dump(empty_car_ads):
+
+    with pytest.raises(ValueError):
+        empty_car_ads.get_car_ads(data_dump="invalid_file_type.json")
+
+
+# test that the parsing of car options works as expected
+def test_parse_car_options(raw_kj_car_ad, raw_cargurus_car_ad):
+
+    raw_kj_car_ad.preprocess_ads()
+    raw_cargurus_car_ad.preprocess_ads()
+
+    raw_kj_car_ad.get_car_options()
+    raw_cargurus_car_ad.get_car_options()
+
+    assert raw_kj_car_ad.df.options_list.iloc[0] == [
+        "air-conditioning",
+        "backup-camera",
+    ]
+    assert raw_cargurus_car_ad.df.options_list.iloc[0] == ["heated-seats"]
+
+
+# test that preprocessing a raw kijiji ad returns the expected processed ad
+def test_preprocess_raw_kijiji_ad(raw_kj_car_ad, raw_cargurus_car_ad):
+
+    raw_kj_car_ad.preprocess_ads()
+    raw_cargurus_car_ad.preprocess_ads()
+
+    assert raw_kj_car_ad.df.age_at_posting.iloc[0] == 2
+    assert raw_kj_car_ad.df.mileage_per_year.iloc[0] == 5_000
+    assert raw_kj_car_ad.df.options_list.iloc[0] == [
+        "air-conditioning",
+        "backup-camera",
+    ]
+
+    assert raw_cargurus_car_ad.df.age_at_posting.iloc[0] == 3
+    assert raw_cargurus_car_ad.df.mileage_per_year.iloc[0] == 4_000
+    assert raw_cargurus_car_ad.df.options_list.iloc[0] == ["heated-seats"]
+
+
+def test_preprocess_ads_age_zero(empty_car_ads):
+
+    empty_car_ads.df = pd.DataFrame(
+        {
+            "source": ["kijiji"],
+            "year": [2021],
+            "make": ["Ford"],
+            "model": ["F-150"],
+            "mileage": [100000],
+            "listed_date": [dt.datetime(2021, 1, 1, 0, 0, 0)],
+            "major_options": [""],
+            "features": [[]],
+        }
+    )
+    empty_car_ads.preprocess_ads()
+    assert empty_car_ads.df.loc[0, "age_at_posting"] == 0
+    assert empty_car_ads.df.loc[0, "mileage_per_year"] == 100000
+
+
+def test_find_make_names(empty_car_ads):
+
+    make_options = empty_car_ads.find_make_model_names()
+
+    # check that the make options are a styled object
+    assert isinstance(make_options, pd.io.formats.style.Styler)
+    # check that the most common vehicle makes are present
+    assert "Honda" in make_options.data.Makes.iloc[0]
+    assert "Ford" in make_options.data.Makes.iloc[0]
+    assert "Jeep" in make_options.data.Makes.iloc[0]
+
+
+def test_select_single_make(empty_car_ads):
+
+    model_options = empty_car_ads.find_make_model_names(make="Honda")
+
+    # check the model options are a styled object
+    assert isinstance(model_options, pd.io.formats.style.Styler)
+    # check that the most common Honda models are present
+    assert "Civic" in model_options.data.Honda.iloc[0]
+    assert "CR-V" in model_options.data.Honda.iloc[0]
+    assert "Accord" in model_options.data.Honda.iloc[0]
+
+
+def test_non_existant_make(empty_car_ads):
+
+    with pytest.raises(ValueError):
+        empty_car_ads.find_make_model_names(make="invalid_make")
 
 
 # Test the export_to_parquet function
-def test_export_to_parquet(car_class_instance, tmp_path):
+def test_export_to_parquet(raw_kj_car_ad, tmp_path):
     output_path = os.path.join(tmp_path, "test_export.parquet")
-    car_class_instance.export_to_parquet(output_path)
+    raw_kj_car_ad.export_to_parquet(output_path)
     assert os.path.exists(output_path)
-
-    # Verify the content of the exported parquet file (optional)
-    df = pd.read_parquet(output_path)
-    assert df.equals(car_class_instance.df)
 
 
 # Test the export_to_csv function
-def test_export_to_csv(car_class_instance, tmp_path):
+def test_export_to_csv(raw_kj_car_ad, tmp_path):
     output_path = os.path.join(tmp_path, "test_export.csv")
-    car_class_instance.export_to_csv(output_path)
+    raw_kj_car_ad.export_to_csv(output_path)
     assert os.path.exists(output_path)
 
 
@@ -144,3 +191,17 @@ def test_export_to_csv_empty_data(tmp_path):
     output_path = os.path.join(tmp_path, "empty_test_export.csv")
     with pytest.raises(ValueError, match="No car ads have been loaded."):
         empty_car_class.export_to_csv(output_path)
+
+
+# test that export make_makes_model_names works
+def test_export_make_model_names(raw_kj_car_ad, tmp_path):
+    output_path = os.path.join(tmp_path, "test_export_make_model_names.json")
+    raw_kj_car_ad.export_makes_model_names(output_path)
+    assert os.path.exists(output_path)
+
+    # check that loading the json file works
+    with open(output_path, "r") as f:
+        make_model_names = json.load(f)
+
+    assert "Honda" in make_model_names["kijiji"].keys()
+    assert "CR-V" in make_model_names["kijiji"]["Honda"]

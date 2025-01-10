@@ -1,0 +1,7 @@
+model.n_estimators: range(150, 300, step=5)
+model.max_depth: range(3, 10)
+model.learning_rate: range(0.001, 0.3)
+model.subsample: range(0.1,1.0)
+model.colsample_bytree: range(0.1,1.0)
+model.gamma: range(0, 0.4)
+model.min_child_weight: range(1, 10)

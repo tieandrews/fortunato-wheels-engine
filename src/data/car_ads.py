@@ -26,6 +26,7 @@ class CarAds:
         self.make = None
         self.model = None
         self.df = None
+        self.sources = []
 
     def get_car_ads(
         self,
@@ -34,6 +35,7 @@ class CarAds:
         model: str = None,
         sources: list = ["cargurus", "kijiji"],
         data_dump: str = None,
+        limit_ads: int = None,
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
@@ -50,6 +52,8 @@ class CarAds:
             By default is ["cargurus", "kijiji"].
         data_dump: str
             The path to a parquet file containing car ads to load.
+        limit_ads:
+            How many ads to load, if None loads all.
 
         Raises
         ------
@@ -63,11 +67,19 @@ class CarAds:
         If model is None, then all car ads for the given year_range and make are returned.
         """
 
+        self.sources = sources
+
         if data_dump is not None:
             logger.info(f"Loading car ads from {data_dump}...")
 
             if data_dump.endswith(".csv"):
-                self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
+                if isinstance(limit_ads, int):
+                    logger.info(f"Loading first {limit_ads} ads...")
+                    self.df = pd.read_csv(
+                        data_dump, parse_dates=["listed_date"], nrows=limit_ads
+                    )
+                else:
+                    self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
                 return
             elif data_dump.endswith(".parquet"):
                 self.df = pd.read_parquet(data_dump)
@@ -88,35 +100,45 @@ class CarAds:
         car_ads_df = pd.DataFrame()
 
         logger.info(f"Getting all car ads from {sources} sources...")
+        if ("kijiji" in sources) | (limit_ads is not None):
+            # get kijiji ads
+            if limit_ads is not None:
+                kijiji_df = self._get_kijiji_ads(limit_ads=limit_ads)
+                # if limit_ads is passed, gets only ads from kijiji then returns as parquet reading has issues
+                # limiting number of rows read in
+                self.df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
+                # update sources to reflect only kijiji ads present
+                self.sources = ["kijiji"]
+                return
+            else:
+                kijiji_df = self._get_kijiji_ads(limit_ads=limit_ads)
+                car_ads_df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
+
         if "cargurus" in sources:
             # get cargurus ads
             cargurus_df = self._get_cargurus_ads()
             car_ads_df = pd.concat([car_ads_df, cargurus_df], ignore_index=True)
 
-        if "kijiji" in sources:
-            # get kijiji ads
-            kijiji_df = self._get_kijiji_ads()
-            car_ads_df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
-
         logger.info(f"Found {len(car_ads_df)} car ads.")
 
         self.df = car_ads_df
 
-    def preprocess_ads(self):
+    def preprocess_ads(self, top_n_options: int = 50):
         # determine age of ad at posting
+        start_time = pd.Timestamp.now()
         self.df["age_at_posting"] = self.df.listed_date.dt.year - self.df.year
 
         # calculate mileage per year
         self.df["mileage_per_year"] = self.df.mileage / self.df.age_at_posting
 
-        self.df.mileage_per_year = self.df.mileage_per_year.replace(
-            [np.inf, -np.inf], np.nan
-        )
-
-        # where mileage per year is null, set to the mileage values
-        self.df.loc[self.df.mileage_per_year.isnull(), "mileage_per_year"] = self.df.loc[
-            self.df.mileage_per_year.isnull(), "mileage"
+        # set new vechicle mileage_per_year to mileage
+        self.df.loc[self.df.age_at_posting <= 0, "mileage_per_year"] = self.df.loc[
+            self.df.age_at_posting <= 0, "mileage"
         ]
+
+        # for any columns of dtype categorical cast to type strnig for modifications
+        for col in self.df.select_dtypes(include="category").columns:
+            self.df[col] = self.df[col].astype(str)
 
         model_correction_map = {
             "F 150": "F-150",
@@ -126,6 +148,41 @@ class CarAds:
 
         self.df.model = self.df.model.replace(model_correction_map)
 
+        make_correction_map = {
+            "INFINITI": "Infiniti",
+            "FIAT": "Fiat",
+        }
+
+        self.df.make = self.df.make.replace(make_correction_map)
+
+        # normalize Dodge RAM to RAM as per 2009 make name change from all dodge trucks to RAM
+        self.df.loc[
+            (self.df.make == "Dodge") & (self.df.model.str.lower().str.contains("ram")),
+            "make",
+        ] = "RAM"
+
+        # fix RAM model names where RAM is still in the model name, remove it and extra whitespace
+        self.df.loc[
+            (self.df.make == "RAM") & (self.df.model.str.lower().str.contains("ram")),
+            "model",
+        ] = (
+            self.df.loc[
+                (self.df.make == "RAM")
+                & (self.df.model.str.lower().str.contains("ram")),
+                "model",
+            ]
+            .str.lower()
+            .str.replace("ram", "")
+            .str.strip()
+            .str.title()
+        )
+
+        # pre process options list for one hot encoding using multilabel binarizer
+        self.get_car_options(top_n_options=top_n_options)
+
+        logger.info(
+            f"Done preprocessing car ads, took {(pd.Timestamp.now() - start_time).seconds}s."
+        )
 
     def _get_cargurus_ads(self) -> pd.DataFrame:
         """Gets all cargurus car ads.
@@ -150,7 +207,7 @@ class CarAds:
             "wheel_system",
             "currency",
             "exchange_rate_usd_to_cad",
-            "is_new"
+            "is_new",
         ]
 
         parquet_filter = [
@@ -186,7 +243,7 @@ class CarAds:
 
         return cargurus_df
 
-    def _get_kijiji_ads(self) -> pd.DataFrame:
+    def _get_kijiji_ads(self, limit_ads: int = None) -> pd.DataFrame:
         """Gets all kijiji car ads.
 
         Returns
@@ -203,6 +260,24 @@ class CarAds:
             "year": {"$gte": self.year_range[0], "$lte": self.year_range[1]},
         }
 
+        # define projection to only return the columns we need
+        projection = {
+            "year": 1,
+            "make": 1,
+            "model": 1,
+            "features": 1,
+            "created": 1,
+            "modified": 1,
+            "price": 1,
+            "driveTrain": 1,
+            "condition": 1,
+            "mileage": 1,
+            "url": 1,
+            "transmission": 1,
+            "location": 1,
+            "_id": 0,
+        }
+
         # add filter for make if it exists
         if self.make:
             query["make"] = self.make
@@ -211,7 +286,12 @@ class CarAds:
         if self.model:
             query["model"] = self.model
 
-        kijiji_df = pd.DataFrame(list(collection.find(query)))
+        if limit_ads is not None:
+            kijiji_df = pd.DataFrame(
+                list(collection.find(query, projection).limit(limit_ads))
+            )
+        else:
+            kijiji_df = pd.DataFrame(list(collection.find(query, projection)))
 
         kijiji_df["source"] = "kijiji"
 
@@ -240,7 +320,11 @@ class CarAds:
 
         # some locations ore lists of dicts for location, extract the first location from stateProvince field
         kijiji_df["province"] = kijiji_df.location.apply(
-            lambda x: x["stateProvince"] if isinstance(x, dict) else x[0]['stateProvince'] if isinstance(x, list) else x
+            lambda x: (
+                x["stateProvince"]
+                if isinstance(x, dict)
+                else x[0]["stateProvince"] if isinstance(x, list) else x
+            )
         )
 
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
@@ -263,9 +347,7 @@ class CarAds:
 
         # get all makes and models
         all_makes_models_df = pd.read_json(
-            os.path.join(
-                SRC_PATH, "data", "raw", "all-makes-models.json"
-            ),
+            os.path.join(SRC_PATH, "data", "processed", "all-makes-models.json"),
             orient="index",
         )
 
@@ -327,7 +409,7 @@ class CarAds:
 
         if output_path is None:
             output_path = os.path.join(
-                SRC_PATH, "data", "raw", "all-makes-models.json"
+                SRC_PATH, "data", "processed", "all-makes-models.json"
             )
 
         if self.df is None:
@@ -382,3 +464,131 @@ class CarAds:
 
         logger.info("Exporting dataframe to csv file...")
         self.df.to_csv(path)
+
+    def get_car_options(self, top_n_options: int = 50):
+        """
+        Get the car options from the major_options column in the ads dataframe
+        and return a dataframe with the options one hot encoded
+        """
+
+        if self.df is None:
+            raise ValueError("No car ads have been loaded.")
+
+        self.df["options_list"] = None
+
+        if "cargurus" in self.sources:
+            # parse cargurus strings of options into list of options
+            self.df.loc[self.df.source == "cargurus", "options_list"] = (
+                self.df.loc[self.df.source == "cargurus", "major_options"]
+                .str.strip("['']")
+                .str.replace("'", "")
+                .str.replace(", ", ",")
+                .str.replace(" ", "-")
+                .str.replace("/", "-")
+                .str.lower()
+                .str.split(",")
+            )
+
+        if "kijiji" in self.sources:
+            # if the options_list for kijiji ads are lists, replace ' with "", replace / with -,
+            # make it lowercase, replace spaces with -
+            if (
+                self.df.loc[self.df.source == "kijiji", "features"]
+                .apply(lambda x: isinstance(x, list))
+                .any()
+            ):
+                # for each entry in the list apply the formatting
+                self.df.loc[self.df.source == "kijiji", "options_list"] = self.df.loc[
+                    self.df.source == "kijiji", "features"
+                ].apply(
+                    lambda x: (
+                        [
+                            option.replace("'", "")
+                            .replace("/", "-")
+                            .lower()
+                            .replace(" ", "-")
+                            for option in x
+                            if isinstance(x, list)
+                        ]
+                        if isinstance(x, list)
+                        else x
+                    )  # If x is not a list, keep the original value
+                )
+            # otherwise assumed major_options is a string
+            elif (
+                self.df.loc[self.df.source == "kijiji", "features"]
+                .apply(lambda x: isinstance(x, str))
+                .any()
+            ):
+                # need to add option for lists when reading from cosmos database
+                self.df.loc[self.df.source == "kijiji", "options_list"] = (
+                    self.df.loc[self.df.source == "kijiji", "features"]
+                    .str.strip("['']")
+                    .str.replace("'", "")
+                    .str.replace(", ", ",")
+                    .str.replace(" ", "-")
+                    .str.replace("/", "-")
+                    .str.lower()
+                    .str.split(",")
+                )
+            else:
+                logger.error(
+                    f"kijiji ads features column not type str or list, no parsing done."
+                )
+
+        # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
+        if "unique_id" not in self.df.columns:
+            self.df = self.df.reset_index().rename(columns={"index": "unique_id"})
+
+        self.df = self.df.explode("options_list")
+
+        # rename identical options
+        options_combo_map = {
+            "apple-carplay": "apple-carplay-android-auto",
+            "carplay": "apple-carplay-android-auto",
+            "android-auto": "apple-carplay-android-auto",
+            "a-c-(automatic)": "air-conditioning",
+            "a-c-(2-zones)": "air-conditioning",
+            "electric-heated-seats": "heated-seats",
+            "blind-spot-assist": "blind-spot-monitoring",
+            "sunroof": "sunroof-moonroof",
+            "adaptive-cruise-control": "cruise-control",
+        }
+
+        self.df.options_list = self.df.options_list.replace(options_combo_map)
+
+        # only keep the top n options by count
+        most_common_options = self.df.options_list.value_counts()[
+            :top_n_options
+        ].index.to_list()
+
+        logger.debug(
+            f"Keeping the top {top_n_options} options by count: {most_common_options}"
+        )
+
+        # drop all rows where options_list is not in most_common_options but keep empty rows
+        self.df = self.df[
+            (self.df.options_list.isin(most_common_options))
+            | (self.df.options_list.isna())
+        ]
+
+        # replace na values with 'none-listed'
+        self.df.options_list = self.df.options_list.fillna("none-listed")
+
+        # get the one hot encoded options for each ad by grouping opttions_list column
+        self.df = (
+            self.df.groupby(by="unique_id", as_index=False)
+            .agg(
+                {
+                    "options_list": list,
+                    **{
+                        col: "first" for col in self.df.columns if col != "options_list"
+                    },
+                }
+            )
+            .reset_index(drop=True)
+        )
+
+        logger.info(
+            f"Vehicle option preprocessing complete, kept top {top_n_options} options by count."
+        )
