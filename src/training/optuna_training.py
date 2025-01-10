@@ -18,13 +18,19 @@ import hyperopt as hp
 
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler, MultiLabelBinarizer, LabelEncoder
+from sklearn.preprocessing import (
+    OneHotEncoder,
+    StandardScaler,
+    MultiLabelBinarizer,
+    LabelEncoder,
+)
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import cross_validate, cross_val_score
 from xgboost import XGBRegressor
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
+
 # from hyperopt import fmin, tpe, hp, SparkTrials, STATUS_OK, Trials
 from azureml.core import Workspace
 from azureml.core.model import Model
@@ -65,7 +71,7 @@ def training(cfg: DictConfig) -> None:
         data_dump=os.path.join(
             SRC_PATH, "data", "processed", "car-ads-dump_2023-07-18.csv"
         ),
-        limit_ads = 500000
+        limit_ads=500000,
     )
 
     model_features = OmegaConf.to_object(
@@ -80,13 +86,14 @@ def training(cfg: DictConfig) -> None:
 
     # preprocess ads for training
     preprocessed_ads = preprocess_ads_for_training(
-        ads.df, model_features=model_features,
-                exclude_new_vehicle_ads=cfg.preprocess.exclude,
-                min_num_ads=cfg.preprocess.min_num,
-                max_age_at_posting=cfg.preprocess.max_age,
-                min_price=cfg.preprocess.min_price,
-                max_price=cfg.preprocess.max_price,
-                )
+        ads.df,
+        model_features=model_features,
+        exclude_new_vehicle_ads=cfg.preprocess.exclude,
+        min_num_ads=cfg.preprocess.min_num,
+        max_age_at_posting=cfg.preprocess.max_age,
+        min_price=cfg.preprocess.min_price,
+        max_price=cfg.preprocess.max_price,
+    )
 
     train_df, test_df = train_test_split(
         preprocessed_ads,
@@ -121,32 +128,46 @@ def training(cfg: DictConfig) -> None:
     def objective(trial):
         classifier_type = cfg.optuna.regressor
 
-        if classifier_type == 'gradient_boosting':
-            clf = GradientBoostingRegressor(**params)
-        elif classifier_type == 'xgboost':
+        if classifier_type == "gradient_boosting":
             params = {}
-            for int_param in ['n_estimators', 'max_depth', 'min_child_weight']:
+            for int_param in ["n_estimators", "max_depth", "min_samples_split"]:
+                if int_param in cfg.gradient_boosting.keys():
+                    logger.debug(f"Setting up GradientBoosting int: {int_param}")
+                    params[int_param] = trial.suggest_int(
+                        name=int_param,
+                        low=cfg.gradient_boosting[int_param][0],
+                        high=cfg.gradient_boosting[int_param][1],
+                    )
+            clf = GradientBoostingRegressor(**params)
+        elif classifier_type == "xgboost":
+            params = {}
+            for int_param in ["n_estimators", "max_depth", "min_child_weight"]:
                 if int_param in cfg.xgboost.keys():
                     logger.debug(f"Setting up XGboost int: {int_param}")
                     params[int_param] = trial.suggest_int(
-                        name = int_param,
-                        low = cfg.xgboost[int_param][0], 
-                        high = cfg.xgboost[int_param][1]
+                        name=int_param,
+                        low=cfg.xgboost[int_param][0],
+                        high=cfg.xgboost[int_param][1],
                     )
 
-            for float_param in ['learning_rate', 'subsample', 'colsample_bytree', 'gamma']:
+            for float_param in [
+                "learning_rate",
+                "subsample",
+                "colsample_bytree",
+                "gamma",
+            ]:
                 if float_param in cfg.xgboost.keys():
                     logger.debug(f"Setting up XGboost float: {float_param}")
                     params[float_param] = trial.suggest_float(
-                        name = float_param,
-                        low = cfg.xgboost[float_param][0], 
-                        high = cfg.xgboost[float_param][1]
+                        name=float_param,
+                        low=cfg.xgboost[float_param][0],
+                        high=cfg.xgboost[float_param][1],
                     )
-            
+
             clf = XGBRegressor(**params)
-        elif classifier_type == 'rf':
+        elif classifier_type == "rf":
             clf = RandomForestRegressor(**params)
-        elif classifier_type == 'ridge':
+        elif classifier_type == "ridge":
             clf = Ridge(**params)
         else:
             return 0
@@ -158,7 +179,7 @@ def training(cfg: DictConfig) -> None:
             ]
         )
 
-        metrics =  OmegaConf.to_object(cfg.mlflow.metrics)
+        metrics = OmegaConf.to_object(cfg.mlflow.metrics)
         # manually run cross_validate and get train/test rmse, mape, and r2
         model_cv_results = (
             pd.DataFrame(
@@ -167,7 +188,7 @@ def training(cfg: DictConfig) -> None:
                     X_train.head(1000),
                     y_train.head(1000),
                     cv=5,
-                    scoring=metrics, 
+                    scoring=metrics,
                     return_train_score=True,
                     n_jobs=-1,
                 )
@@ -190,7 +211,9 @@ def training(cfg: DictConfig) -> None:
                     mlflow.log_metric(
                         f"{m}_train_std", model_cv_results.loc[f"train_{m}"]["std"]
                     )
-                    mlflow.log_metric(f"{m}_test_std", model_cv_results.loc[f"test_{m}"]["std"])
+                    mlflow.log_metric(
+                        f"{m}_test_std", model_cv_results.loc[f"test_{m}"]["std"]
+                    )
 
                 # log params
                 mlflow.log_params(params)
@@ -211,14 +234,20 @@ def training(cfg: DictConfig) -> None:
 
                 # add predicted price to test_df, round to 1 decimal place
                 full_df = (
-                    test_df.head(1000).copy(deep=True).assign(predicted_price=y_pred.round(1))
+                    test_df.head(1000)
+                    .copy(deep=True)
+                    .assign(predicted_price=y_pred.round(1))
                 )
 
                 # calculate evaluation metrics by model
-                metrics_by_model = price_model.calculate_evaluation_metrics_by_model(full_df)
+                metrics_by_model = price_model.calculate_evaluation_metrics_by_model(
+                    full_df
+                )
 
                 # calculate evaluation metrics by make
-                metrics_by_make = price_model.calculate_evaluation_metrics_by_make(full_df)
+                metrics_by_make = price_model.calculate_evaluation_metrics_by_make(
+                    full_df
+                )
 
                 # calculate training data metrics
                 train_data_metrics = price_model.calculate_train_data_metrics(
@@ -248,50 +277,54 @@ def training(cfg: DictConfig) -> None:
             fit_model = pipe.fit(X_train.head(1000), y_train.head(1000))
             y_pred = fit_model.predict(X_test.head(1000))
             full_df = (
-                test_df.head(1000).copy(deep=True).assign(predicted_price=y_pred.round(1))
+                test_df.head(1000)
+                .copy(deep=True)
+                .assign(predicted_price=y_pred.round(1))
             )
-            metrics_by_model = price_model.calculate_evaluation_metrics_by_model(full_df)
+            metrics_by_model = price_model.calculate_evaluation_metrics_by_model(
+                full_df
+            )
             metrics_by_make = price_model.calculate_evaluation_metrics_by_make(full_df)
-            train_data_metrics = price_model.calculate_train_data_metrics(train_df.head(1000))
+            train_data_metrics = price_model.calculate_train_data_metrics(
+                train_df.head(1000)
+            )
 
             # can either print out results or save as csv locally
 
-
         # make negative mape positive so it minimizes it
-        result = -model_cv_results.loc["test_" + metrics[0]]["mean"],
+        result = (-model_cv_results.loc["test_" + metrics[0]]["mean"],)
 
         return result
 
-
     # define search space
     # search_space = hp.choice("classifier_type", [
-        # {
-        #     "type": "gradient_boosting",
-        #     "max_features": hp.choice("max_features", ["sqrt", "log2"]),
-        #     "max_depth": hp.uniformint("max_depth", 15, 30),
-        #     "min_samples_split": hp.uniformint("dtree_min_samples_split", 20, 40),
-        #     "n_estimators": hp.uniformint("n_estimators", 150, 300),
-        # },
-        # {
-        #     'type': 'xgboost',
-        #     'max_depth': hp.uniformint('max_depth', 15, 40),
-        #     'min_child_weight': hp.uniformint('min_child_weight', 1, 10),
-        #     'subsample': hp.uniform('subsample', 0.5, 1),
-        #     'n_estimators': hp.uniformint('n_estimators', 150, 400),
-        #     'learning_rate': hp.uniform('learning_rate', 0.01, 0.2),
-        #     'gamma': hp.uniform('gamma', 0.1, 1),
-        # },
-        # {
-        #     'type': 'rf',
-        #     'max_depth': hp.uniformint('max_depth', 5, 50),
-        #     'max_features': hp.choice('max_features', ['sqrt', 'log2']),
-        #     'min_samples_split': hp.uniform('min_samples_split', 0.1, 1),
-        # },
-        # {
-        #     'type': 'ridge',
-        #     'alpha': hp.uniform('alpha', 0.1, 100),
-        # }
-        # ])
+    # {
+    #     "type": "gradient_boosting",
+    #     "max_features": hp.choice("max_features", ["sqrt", "log2"]),
+    #     "max_depth": hp.uniformint("max_depth", 15, 30),
+    #     "min_samples_split": hp.uniformint("dtree_min_samples_split", 20, 40),
+    #     "n_estimators": hp.uniformint("n_estimators", 150, 300),
+    # },
+    # {
+    #     'type': 'xgboost',
+    #     'max_depth': hp.uniformint('max_depth', 15, 40),
+    #     'min_child_weight': hp.uniformint('min_child_weight', 1, 10),
+    #     'subsample': hp.uniform('subsample', 0.5, 1),
+    #     'n_estimators': hp.uniformint('n_estimators', 150, 400),
+    #     'learning_rate': hp.uniform('learning_rate', 0.01, 0.2),
+    #     'gamma': hp.uniform('gamma', 0.1, 1),
+    # },
+    # {
+    #     'type': 'rf',
+    #     'max_depth': hp.uniformint('max_depth', 5, 50),
+    #     'max_features': hp.choice('max_features', ['sqrt', 'log2']),
+    #     'min_samples_split': hp.uniform('min_samples_split', 0.1, 1),
+    # },
+    # {
+    #     'type': 'ridge',
+    #     'alpha': hp.uniform('alpha', 0.1, 100),
+    # }
+    # ])
 
     # # Define the hyperopt search space based on the selected classifier type
     # hyperopt_space = cfg.search_space.gradient_boosting
@@ -300,8 +333,6 @@ def training(cfg: DictConfig) -> None:
     # search_space = {}
     # for key, value in hyperopt_space.items():
     #     search_space[key] = getattr(hp, value[0])(key, *value[1:])
-
-   
 
     # mlflow.set_experiment("price-prediction-v3-gradboost")
     mlflow.set_experiment(cfg.mlflow.exp_name)
@@ -318,9 +349,7 @@ def training(cfg: DictConfig) -> None:
     # )
 
     study = optuna.create_study(direction="minimize")
-    study.optimize(objective) # , n_trials=cfg.optuna.n_trials
-
-
+    study.optimize(objective)  # , n_trials=cfg.optuna.n_trials
 
 
 if __name__ == "__main__":
