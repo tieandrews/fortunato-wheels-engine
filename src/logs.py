@@ -49,6 +49,6 @@ def find_logger_basefilename(logger):
             if h.__class__.__name__ == 'TimedRotatingFileHandler':
                 log_file = h.baseFilename
     else:
-        log_file = self._find_logger_basefilename(parent)
+        log_file = find_logger_basefilename(parent)
 
     return log_file  
