@@ -7,7 +7,7 @@ load_data:
       - cargurus
       - kijiji
     data_dump:
-    limit_ads:
+    limit_ads: 50000
   preprocess:
     top_n_options: 50
 
@@ -40,7 +40,7 @@ hyperopt:
 
 mlflow:
   exp_name: "sandbox"
-  evals: 1
+  evals: 3
   log_fit_model: True
 
 model: xgboost
@@ -69,7 +69,7 @@ search_space:
       - "xgboost"
     max_depth:
       - uniformint
-      - 15
+      - 35
       - 40
     min_child_weight:
       - uniformint
@@ -81,7 +81,7 @@ search_space:
       - 1
     n_estimators:
       - uniformint
-      - 150
+      - 375
       - 400
     learning_rate:
       - uniform
