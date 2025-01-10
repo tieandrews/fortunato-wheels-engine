@@ -5,7 +5,7 @@ import os, sys
 
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import root_mean_squared_error, r2_score
 
 SRC_PATH = os.path.join(os.path.dirname(__file__), "..", "..")
 if SRC_PATH not in sys.path:
@@ -49,7 +49,7 @@ def calculate_evaluation_metrics(y, y_pred, metrics=["rmse", "mape", "r2"]):
     # Calculate the RMSE if it is requested
     if "rmse" in metrics:
         evaluation_metrics["rmse"] = round(
-            mean_squared_error(y, y_pred, squared=False), 1
+            root_mean_squared_error(y, y_pred), 1
         )
 
     # Calculate the MAPE if it is requested
@@ -113,8 +113,8 @@ def calculate_evaluation_metrics_by_model(df, metrics=["rmse", "mape", "r2"]):
         make_model_results[(make, model)]["count"] = len(y_actual_subset)
 
         if "rmse" in metrics:
-            rmse = mean_squared_error(
-                y_actual_subset, y_predicted_subset, squared=False
+            rmse = root_mean_squared_error(
+                y_actual_subset, y_predicted_subset
             )
             make_model_results[(make, model)]["RMSE"] = round(rmse, 1)
 
@@ -177,8 +177,8 @@ def calculate_evaluation_metrics_by_make(df, metrics=["rmse", "mape", "r2"]):
         make_results[(make)]["count"] = len(y_actual_subset)
 
         if "rmse" in metrics:
-            rmse = mean_squared_error(
-                y_actual_subset, y_predicted_subset, squared=False
+            rmse = root_mean_squared_error(
+                y_actual_subset, y_predicted_subset
             )
             make_results[(make)]["RMSE"] = round(rmse, 1)
 
