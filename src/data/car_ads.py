@@ -26,7 +26,7 @@ class CarAds:
         self.make = None
         self.model = None
         self.df = None
-        self.sources = None
+        self.sources = []
 
     def get_car_ads(
         self,
@@ -35,7 +35,7 @@ class CarAds:
         model: str = None,
         sources: list = ["cargurus", "kijiji"],
         data_dump: str = None,
-        limit_ads: int = None
+        limit_ads: int = None,
     ):
         """Gets all car ads from all sources and assigns to CarAds.df object.
 
@@ -75,7 +75,9 @@ class CarAds:
             if data_dump.endswith(".csv"):
                 if isinstance(limit_ads, int):
                     logger.info(f"Loading first {limit_ads} ads...")
-                    self.df = pd.read_csv(data_dump, parse_dates=["listed_date"], nrows=limit_ads)
+                    self.df = pd.read_csv(
+                        data_dump, parse_dates=["listed_date"], nrows=limit_ads
+                    )
                 else:
                     self.df = pd.read_csv(data_dump, parse_dates=["listed_date"])
                 return
@@ -101,7 +103,7 @@ class CarAds:
         if ("kijiji" in sources) | (limit_ads is not None):
             # get kijiji ads
             if limit_ads is not None:
-                kijiji_df = self._get_kijiji_ads(limit_ads = limit_ads)
+                kijiji_df = self._get_kijiji_ads(limit_ads=limit_ads)
                 # if limit_ads is passed, gets only ads from kijiji then returns as parquet reading has issues
                 # limiting number of rows read in
                 self.df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
@@ -109,7 +111,7 @@ class CarAds:
                 self.sources = ["kijiji"]
                 return
             else:
-                kijiji_df = self._get_kijiji_ads(limit_ads = limit_ads)
+                kijiji_df = self._get_kijiji_ads(limit_ads=limit_ads)
                 car_ads_df = pd.concat([car_ads_df, kijiji_df], ignore_index=True)
 
         if "cargurus" in sources:
@@ -241,7 +243,7 @@ class CarAds:
 
         return cargurus_df
 
-    def _get_kijiji_ads(self, limit_ads:int = None) -> pd.DataFrame:
+    def _get_kijiji_ads(self, limit_ads: int = None) -> pd.DataFrame:
         """Gets all kijiji car ads.
 
         Returns
@@ -273,7 +275,7 @@ class CarAds:
             "url": 1,
             "transmission": 1,
             "location": 1,
-            "_id": 0
+            "_id": 0,
         }
 
         # add filter for make if it exists
@@ -285,7 +287,9 @@ class CarAds:
             query["model"] = self.model
 
         if limit_ads is not None:
-            kijiji_df = pd.DataFrame(list(collection.find(query, projection).limit(limit_ads)))
+            kijiji_df = pd.DataFrame(
+                list(collection.find(query, projection).limit(limit_ads))
+            )
         else:
             kijiji_df = pd.DataFrame(list(collection.find(query, projection)))
 
@@ -316,11 +320,11 @@ class CarAds:
 
         # some locations ore lists of dicts for location, extract the first location from stateProvince field
         kijiji_df["province"] = kijiji_df.location.apply(
-            lambda x: x["stateProvince"]
-            if isinstance(x, dict)
-            else x[0]["stateProvince"]
-            if isinstance(x, list)
-            else x
+            lambda x: (
+                x["stateProvince"]
+                if isinstance(x, dict)
+                else x[0]["stateProvince"] if isinstance(x, list) else x
+            )
         )
 
         logger.info(f"Found {len(kijiji_df)} kijiji car ads.")
@@ -343,9 +347,7 @@ class CarAds:
 
         # get all makes and models
         all_makes_models_df = pd.read_json(
-            os.path.join(
-                SRC_PATH, "data", "processed", "all-makes-models.json"
-            ),
+            os.path.join(SRC_PATH, "data", "processed", "all-makes-models.json"),
             orient="index",
         )
 
@@ -488,26 +490,36 @@ class CarAds:
             )
 
         if "kijiji" in self.sources:
-            # if the options_list for kijiji ads are lists, replace ' with "", replace / with -, 
+            # if the options_list for kijiji ads are lists, replace ' with "", replace / with -,
             # make it lowercase, replace spaces with -
-            if self.df.loc[self.df.source == "kijiji", "features"].apply(
-                lambda x: isinstance(x, list)
-            ).any():
+            if (
+                self.df.loc[self.df.source == "kijiji", "features"]
+                .apply(lambda x: isinstance(x, list))
+                .any()
+            ):
                 # for each entry in the list apply the formatting
-                self.df.loc[
-                    self.df.source == "kijiji", "options_list"
-                ] = self.df.loc[
+                self.df.loc[self.df.source == "kijiji", "options_list"] = self.df.loc[
                     self.df.source == "kijiji", "features"
                 ].apply(
-                    lambda x: [
-                        option.replace("'", "").replace("/", "-").lower().replace(" ", "-")
-                        for option in x if isinstance(x, list) 
-                    ] if isinstance(x, list) else x  # If x is not a list, keep the original value
+                    lambda x: (
+                        [
+                            option.replace("'", "")
+                            .replace("/", "-")
+                            .lower()
+                            .replace(" ", "-")
+                            for option in x
+                            if isinstance(x, list)
+                        ]
+                        if isinstance(x, list)
+                        else x
+                    )  # If x is not a list, keep the original value
                 )
             # otherwise assumed major_options is a string
-            elif self.df.loc[self.df.source == "kijiji", "features"].apply(
-                lambda x: isinstance(x, str)
-            ).any():
+            elif (
+                self.df.loc[self.df.source == "kijiji", "features"]
+                .apply(lambda x: isinstance(x, str))
+                .any()
+            ):
                 # need to add option for lists when reading from cosmos database
                 self.df.loc[self.df.source == "kijiji", "options_list"] = (
                     self.df.loc[self.df.source == "kijiji", "features"]
@@ -520,7 +532,9 @@ class CarAds:
                     .str.split(",")
                 )
             else:
-                logger.error(f"kijiji ads features column not type str or list, no parsing done.")
+                logger.error(
+                    f"kijiji ads features column not type str or list, no parsing done."
+                )
 
         # reset the index to use as uniqwue id's for each ad as cargurus doesn't have unique id's
         if "unique_id" not in self.df.columns:
